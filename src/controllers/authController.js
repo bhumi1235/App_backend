@@ -36,6 +36,14 @@ export const signup = async (req, res, next) => {
             user: newEmployee
         });
     } catch (error) {
+        if (error.code === '23505') {
+            if (error.constraint.includes('email')) {
+                return errorResponse(res, "Email id is already registered");
+            }
+            if (error.constraint.includes('phone')) {
+                return errorResponse(res, "Phone number already registered.");
+            }
+        }
         next(error);
     }
 };
