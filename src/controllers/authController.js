@@ -36,11 +36,12 @@ export const signup = async (req, res, next) => {
             user: newEmployee
         });
     } catch (error) {
-        if (error.code === '23505') {
-            if (error.constraint.includes('email')) {
+        // Check for Postgres Unique Violation (Code 23505) OR generic duplicate message
+        if (error.code === '23505' || (error.message && error.message.includes('duplicate key'))) {
+            if ((error.constraint && error.constraint.includes('email')) || (error.detail && error.detail.includes('email')) || (error.message && error.message.includes('email'))) {
                 return errorResponse(res, "Email id is already registered");
             }
-            if (error.constraint.includes('phone')) {
+            if ((error.constraint && error.constraint.includes('phone')) || (error.detail && error.detail.includes('phone')) || (error.message && error.message.includes('phone'))) {
                 return errorResponse(res, "Phone number already registered.");
             }
         }
