@@ -8,8 +8,6 @@
     "globals": [],
     "mocks": [],
     "specs": [],
-    "collections": [
-      "..\\postman_collection.json"
-    ]
+    "collections": []
   }
 }
