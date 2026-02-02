@@ -18,7 +18,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n    \"name\": \"Rahul\",\n    \"phone\": \"9876543210\",\n    \"email\": \"rahul@example.com\",\n    \"password\": \"password123\",\n    \"confirmPassword\": \"password123\"\n}",
+          "raw": "{\n    \"name\": \"Kira\",\n    \"phone\": \"9876543212\",\n    \"email\": \"kira@example.com\",\n    \"password\": \"password123\",\n    \"confirmPassword\": \"password123\"\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -51,7 +51,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n    \"phone\": \"9876543210\",\n    \"password\": \"newpass123\"\n}"
+          "raw": "{\n    \"name\": \"Kira\",\n    \"phone\": \"9876543212\",\n    \"email\": \"kira@example.com\",\n    \"password\": \"password123\",\n    \"confirmPassword\": \"password123\"\n}"
         },
         "url": {
           "raw": "{{base_url}}/auth/login",
@@ -149,6 +149,13 @@
         }
       },
       "response": []
+    }
+  ],
+  "variable": [
+    {
+      "id": "14cd5a9f-3575-489a-bf92-c7410513ccd6",
+      "key": "base_url",
+      "value": "https://appbackend-production-b66a.up.railway.app/"
     }
   ]
 }
