@@ -14,6 +14,12 @@ export const signup = async (req, res, next) => {
             return errorResponse(res, "Phone number already registered.");
         }
 
+        // Check if email already exists
+        const emailCheck = await pool.query("SELECT * FROM employees WHERE email = $1", [email]);
+        if (emailCheck.rows.length > 0) {
+            return errorResponse(res, "Email id is already registered");
+        }
+
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
@@ -30,6 +36,15 @@ export const signup = async (req, res, next) => {
             user: newEmployee
         });
     } catch (error) {
+        // Check for Postgres Unique Violation (Code 23505) OR generic duplicate message
+        if (error.code === '23505' || (error.message && error.message.includes('duplicate key'))) {
+            if ((error.constraint && error.constraint.includes('email')) || (error.detail && error.detail.includes('email')) || (error.message && error.message.includes('email'))) {
+                return errorResponse(res, "Email id is already registered");
+            }
+            if ((error.constraint && error.constraint.includes('phone')) || (error.detail && error.detail.includes('phone')) || (error.message && error.message.includes('phone'))) {
+                return errorResponse(res, "Phone number already registered.");
+            }
+        }
         next(error);
     }
 };
@@ -42,14 +57,14 @@ export const login = async (req, res, next) => {
         const result = await pool.query("SELECT * FROM employees WHERE phone = $1", [phone]);
 
         if (result.rows.length === 0) {
-            return errorResponse(res, "Invalid credentials");
+            return errorResponse(res, "Phone number not registered");
         }
 
         const employee = result.rows[0];
         const isMatch = await bcrypt.compare(password, employee.password_hash);
 
         if (!isMatch) {
-            return errorResponse(res, "Invalid credentials");
+            return errorResponse(res, "Invalid password");
         }
 
         // Update device info if provided
@@ -62,8 +77,8 @@ export const login = async (req, res, next) => {
 
         const token = generateToken({ id: employee.id, phone: employee.phone });
 
-        // Construct userDataArray (as requested)
-        const userDataArray = {
+        // Construct userData object (as requested)
+        const userData = {
             id: employee.id,
             name: employee.name,
             phone: employee.phone,
@@ -72,9 +87,9 @@ export const login = async (req, res, next) => {
             device_type: device_type || employee.device_type
         };
 
-        return successResponse(res, "Login successful", {
+        return successResponse(res, "Login successfully", {
             token,
-            userDataArray: [userDataArray]
+            userData: userData
         });
     } catch (error) {
         next(error);
