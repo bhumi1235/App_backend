@@ -77,8 +77,8 @@ export const login = async (req, res, next) => {
 
         const token = generateToken({ id: employee.id, phone: employee.phone });
 
-        // Construct userDataArray (as requested)
-        const userDataArray = {
+        // Construct userData object (as requested)
+        const userData = {
             id: employee.id,
             name: employee.name,
             phone: employee.phone,
@@ -89,7 +89,7 @@ export const login = async (req, res, next) => {
 
         return successResponse(res, "Login successfully", {
             token,
-            userDataArray: [userDataArray]
+            userData: userData
         });
     } catch (error) {
         next(error);
