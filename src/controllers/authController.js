@@ -6,7 +6,7 @@ import { successResponse, errorResponse } from "../utils/responseHandler.js";
 // Employee Signup
 export const signup = async (req, res, next) => {
     try {
-        const { name, phone, email, password } = req.body;
+        const { name, phone, email, password, player_id, device_type } = req.body;
 
         // Check if phone already exists
         const phoneCheck = await pool.query("SELECT * FROM employees WHERE phone = $1", [phone]);
@@ -24,16 +24,25 @@ export const signup = async (req, res, next) => {
         const hashedPassword = await bcrypt.hash(password, salt);
 
         const { rows } = await pool.query(
-            "INSERT INTO employees (name, phone, email, password_hash) VALUES ($1, $2, $3, $4) RETURNING id, name, phone, email",
-            [name, phone, email, hashedPassword]
+            "INSERT INTO employees (name, phone, email, password_hash, player_id, device_type) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, name, phone, email, player_id, device_type",
+            [name, phone, email, hashedPassword, player_id || null, device_type || null]
         );
 
         const newEmployee = rows[0];
         const token = generateToken({ id: newEmployee.id, phone: newEmployee.phone });
 
+        const userData = {
+            id: newEmployee.id,
+            name: newEmployee.name,
+            phone: newEmployee.phone,
+            email: newEmployee.email,
+            player_id: newEmployee.player_id,
+            device_type: newEmployee.device_type
+        };
+
         return successResponse(res, "Account created successfully.", {
             token,
-            user: newEmployee
+            userData: userData
         });
     } catch (error) {
         // Check for Postgres Unique Violation (Code 23505) OR generic duplicate message
