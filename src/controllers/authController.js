@@ -137,14 +137,44 @@ export const forgotPassword = async (req, res, next) => {
     }
 };
 
+// Resend OTP
+export const resendOtp = async (req, res, next) => {
+    try {
+        const { id } = req.body;
+
+        const result = await pool.query("SELECT * FROM employees WHERE id = $1", [id]);
+        if (result.rows.length === 0) {
+            return errorResponse(res, "User not found");
+        }
+
+        const employee = result.rows[0];
+
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const salt = await bcrypt.genSalt(10);
+        const otpHash = await bcrypt.hash(otp, salt);
+        const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
+
+        await pool.query(
+            "UPDATE employees SET otp_hash = $1, otp_expiry = $2 WHERE id = $3",
+            [otpHash, otpExpiry, id]
+        );
+
+        console.log(`[MOCK SMS] Resend OTP for ${employee.phone}: ${otp}`);
+
+        return successResponse(res, "OTP resent successfully", { otp });
+    } catch (error) {
+        next(error);
+    }
+};
+
 // Verify OTP
 export const verifyOtp = async (req, res, next) => {
     try {
-        const { phone, otp } = req.body;
+        const { id, otp } = req.body;
 
-        const result = await pool.query("SELECT * FROM employees WHERE phone = $1", [phone]);
+        const result = await pool.query("SELECT * FROM employees WHERE id = $1", [id]);
         if (result.rows.length === 0) {
-            return errorResponse(res, "Invalid OTP or Phone");
+            return errorResponse(res, "Invalid User ID");
         }
 
         const employee = result.rows[0];

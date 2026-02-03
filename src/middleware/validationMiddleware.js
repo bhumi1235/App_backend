@@ -38,8 +38,13 @@ export const validateForgotPassword = [
     handleValidationErrors
 ];
 
+export const validateResendOtp = [
+    body("id").notEmpty().withMessage("User ID is required"),
+    handleValidationErrors
+];
+
 export const validateVerifyOtp = [
-    body("phone").notEmpty().withMessage("Phone number is required"),
+    body("id").notEmpty().withMessage("User ID is required"),
     body("otp").isLength({ min: 6, max: 6 }).withMessage("OTP must be 6 digits"),
     handleValidationErrors
 ];
