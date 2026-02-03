@@ -112,8 +112,11 @@ export const addGuard = async (req, res) => {
         // Helper to format Supervisor ID
         const formatSupervisorId = (id) => `SPR${String(id).padStart(3, '0')}`;
 
+        // Helper to format Guard ID (can be moved to utils for reuse)
+        const formatGuardId = (id) => `GRD${String(id).padStart(3, '0')}`;
+
         return successResponse(res, "Guard added successfully", {
-            guardId,
+            guardID: formatGuardId(guardId),
             supervisorID: req.user ? formatSupervisorId(req.user.id) : null,
             supervisorName,
             profile_photo: profile_photo,
@@ -147,7 +150,22 @@ export const getAllGuards = async (req, res) => {
         query += " ORDER BY g.created_at DESC";
 
         const result = await pool.query(query, params);
-        res.json(result.rows);
+
+        // Format IDs in response
+        const formattedGuards = result.rows.map(guard => ({
+            ...guard,
+            guardID: `GRD${String(guard.id).padStart(3, '0')}`,
+            // Removing raw id might break frontend if it relies on it, but user asked to REPLACE it.
+            // Keeping raw id hidden or removed? "instead of id, make it guardID" implies replacement.
+            // I'll keep raw id as well for safety unless explicit, OR just add guardID. 
+            // User said "replace normal serial number id at all places".
+            // So I will remove `id` or just overwrite it? 
+            // Safe bet: Add guardID, maybe keep id for internal use if needed, but for "make it guardID" request:
+            id: undefined, // Explicitly remove raw id
+            guardID: `GRD${String(guard.id).padStart(3, '0')}`
+        }));
+
+        res.json(formattedGuards);
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: "Server error" });
@@ -180,6 +198,8 @@ export const getGuardById = async (req, res) => {
 
         res.json({
             ...guard,
+            id: undefined, // Remove raw ID
+            guardID: `GRD${String(guard.id).padStart(3, '0')}`,
             emergency_contacts: contactsResult.rows,
             documents: documentsResult.rows,
         });

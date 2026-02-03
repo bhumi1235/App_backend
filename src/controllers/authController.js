@@ -3,6 +3,16 @@ import pool from "../config/db.js";
 import { generateToken } from "../utils/jwtUtils.js";
 import { successResponse, errorResponse } from "../utils/responseHandler.js";
 
+// Helper to format Supervisor ID
+const formatSupervisorId = (id) => `SPR${String(id).padStart(3, '0')}`;
+
+// Helper to extract ID from Supervisor ID string (SPRxxx -> xxx)
+const parseSupervisorId = (sprId) => {
+    if (!sprId || typeof sprId !== 'string') return null;
+    const match = sprId.match(/SPR(\d+)/);
+    return match ? parseInt(match[1], 10) : parseInt(sprId, 10); // Fallback to int if raw
+};
+
 // Employee Signup
 export const signup = async (req, res, next) => {
     try {
@@ -32,12 +42,13 @@ export const signup = async (req, res, next) => {
         const token = generateToken({ id: newEmployee.id, phone: newEmployee.phone });
 
         const userData = {
-            id: newEmployee.id,
+            supervisorID: formatSupervisorId(newEmployee.id), // Formatted ID
             name: newEmployee.name,
             phone: newEmployee.phone,
             email: newEmployee.email,
             player_id: newEmployee.player_id,
-            device_type: newEmployee.device_type
+            device_type: newEmployee.device_type,
+            profileImage: null // New user has no profile image
         };
 
         return successResponse(res, "Account created successfully.", {
@@ -86,9 +97,6 @@ export const login = async (req, res, next) => {
 
         const token = generateToken({ id: employee.id, phone: employee.phone });
 
-        // Helper to format Supervisor ID
-        const formatSupervisorId = (id) => `SPR${String(id).padStart(3, '0')}`;
-
         // Construct userData object (as requested)
         const userData = {
             supervisorID: formatSupervisorId(employee.id), // Formatted ID ("SPR001")
@@ -135,7 +143,7 @@ export const forgotPassword = async (req, res, next) => {
             return errorResponse(res, "User not found");
         }
 
-        return successResponse(res, "OTP sent successfully", { otp, user_id: employee.id });
+        return successResponse(res, "OTP sent successfully", { otp, supervisorID: formatSupervisorId(employee.id) });
     } catch (error) {
         next(error);
     }
@@ -144,7 +152,10 @@ export const forgotPassword = async (req, res, next) => {
 // Resend OTP
 export const resendOtp = async (req, res, next) => {
     try {
-        const { id } = req.body;
+        const { supervisorID } = req.body;
+        const id = parseSupervisorId(supervisorID);
+
+        if (!id) return errorResponse(res, "Invalid Supervisor ID format");
 
         const result = await pool.query("SELECT * FROM employees WHERE id = $1", [id]);
         if (result.rows.length === 0) {
@@ -174,11 +185,14 @@ export const resendOtp = async (req, res, next) => {
 // Verify OTP
 export const verifyOtp = async (req, res, next) => {
     try {
-        const { id, otp } = req.body;
+        const { supervisorID, otp } = req.body;
+        const id = parseSupervisorId(supervisorID);
+
+        if (!id) return errorResponse(res, "Invalid Supervisor ID format");
 
         const result = await pool.query("SELECT * FROM employees WHERE id = $1", [id]);
         if (result.rows.length === 0) {
-            return errorResponse(res, "Invalid User ID");
+            return errorResponse(res, "Invalid Supervisor ID");
         }
 
         const employee = result.rows[0];
@@ -203,10 +217,12 @@ export const verifyOtp = async (req, res, next) => {
 };
 
 // Reset Password
-// Reset Password
 export const resetPassword = async (req, res, next) => {
     try {
-        const { id, new_password } = req.body;
+        const { supervisorID, new_password } = req.body;
+        const id = parseSupervisorId(supervisorID);
+
+        if (!id) return errorResponse(res, "Invalid Supervisor ID format");
 
         const result = await pool.query("SELECT * FROM employees WHERE id = $1", [id]);
         if (result.rows.length === 0) {
@@ -225,10 +241,8 @@ export const resetPassword = async (req, res, next) => {
             [passwordHash, id]
         );
 
-        return successResponse(res, "Password reset successfully", { user_id: employee.id });
+        return successResponse(res, "Password reset successfully", { supervisorID: formatSupervisorId(employee.id) });
     } catch (error) {
         next(error);
     }
 };
-
-

@@ -39,18 +39,18 @@ export const validateForgotPassword = [
 ];
 
 export const validateResendOtp = [
-    body("id").notEmpty().withMessage("User ID is required"),
+    body("supervisorID").notEmpty().withMessage("Supervisor ID is required"),
     handleValidationErrors
 ];
 
 export const validateVerifyOtp = [
-    body("id").notEmpty().withMessage("User ID is required"),
+    body("supervisorID").notEmpty().withMessage("Supervisor ID is required"),
     body("otp").isLength({ min: 6, max: 6 }).withMessage("OTP must be 6 digits"),
     handleValidationErrors
 ];
 
 export const validateResetPassword = [
-    body("id").notEmpty().withMessage("User ID is required"),
+    body("supervisorID").notEmpty().withMessage("Supervisor ID is required"),
     body("new_password").isLength({ min: 6 }).withMessage("Password must be at least 6 characters"),
     handleValidationErrors
 ];
