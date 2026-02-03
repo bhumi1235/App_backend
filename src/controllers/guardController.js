@@ -96,13 +96,21 @@ export const addGuard = async (req, res) => {
             ["GUARD_ADDED", `New guard added: ${name}`]
         );
 
+        // Fetch Supervisor Name (Logged-in User)
+        let supervisorName = "Unknown";
+        if (req.user && req.user.id) {
+            const supervisorResult = await client.query("SELECT name FROM employees WHERE id = $1", [req.user.id]);
+            if (supervisorResult.rows.length > 0) {
+                supervisorName = supervisorResult.rows[0].name;
+            }
+        }
+
         await client.query("COMMIT");
 
         return successResponse(res, "Guard added successfully", {
-            guard: {
-                id: guardId,
-                name: name
-            }
+            guardId,
+            supervisorId: req.user ? req.user.id : null,
+            supervisorName
         }, 201); // 201 Created
 
     } catch (error) {
