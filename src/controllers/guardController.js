@@ -107,10 +107,15 @@ export const addGuard = async (req, res) => {
 
         await client.query("COMMIT");
 
+        // Helper to format Supervisor ID
+        const formatSupervisorId = (id) => `SPR${String(id).padStart(3, '0')}`;
+
         return successResponse(res, "Guard added successfully", {
             guardId,
-            supervisorId: req.user ? req.user.id : null,
-            supervisorName
+            supervisorId: req.user ? formatSupervisorId(req.user.id) : null,
+            supervisorName,
+            profile_photo: profile_photo,
+            documents: uploadedDocuments
         }, 201); // 201 Created
 
     } catch (error) {

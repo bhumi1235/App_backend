@@ -86,14 +86,19 @@ export const login = async (req, res, next) => {
 
         const token = generateToken({ id: employee.id, phone: employee.phone });
 
+        // Helper to format Supervisor ID
+        const formatSupervisorId = (id) => `SPR${String(id).padStart(3, '0')}`;
+
         // Construct userData object (as requested)
         const userData = {
-            id: employee.id,
+            id: employee.id, // Internal ID kept for reference/logic
+            supervisorID: formatSupervisorId(employee.id), // Formatted ID
             name: employee.name,
             phone: employee.phone,
             email: employee.email,
             player_id: player_id || employee.player_id,
-            device_type: device_type || employee.device_type
+            device_type: device_type || employee.device_type,
+            profileImage: employee.profile_photo || null // Add profile image
         };
 
         return successResponse(res, "Login successfully", {

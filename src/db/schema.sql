@@ -58,6 +58,7 @@ CREATE TABLE IF NOT EXISTS notifications (
 CREATE TABLE IF NOT EXISTS employees (
   id SERIAL PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
+  profile_photo VARCHAR(255),
   phone VARCHAR(20) UNIQUE NOT NULL,
   email VARCHAR(255),
   password_hash VARCHAR(255) NOT NULL,
