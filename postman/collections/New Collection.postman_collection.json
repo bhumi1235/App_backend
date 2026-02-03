@@ -187,7 +187,7 @@
           "bearer": [
             {
               "key": "token",
-              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicGhvbmUiOiI5ODc2NTQzMjEyIiwiaWF0IjoxNzcwMTAxMjM3LCJleHAiOjE3NzAxODc2Mzd9.UXgNc4aYd9peSYNbupO194yrr8Vgycm6G5nZ5OawcDM",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicGhvbmUiOiI5ODc2NTQzMjEyIiwiaWF0IjoxNzcwMTAxNjQxLCJleHAiOjE3NzAxODgwNDF9.ut5g8xUYwmDoWAd7TD0dCcfj6zWJZ9eprir0yFH5FQk",
               "type": "string"
             }
           ]
@@ -196,7 +196,7 @@
         "header": [],
         "body": {
           "mode": "raw",
-          "raw": "{\r\n    \"name\": \"John Doe\",\r\n    \"phone\": \"9876543210\",\r\n    \"email\": \"john.doe@example.com\",\r\n    \"current_address\": \"123 Main St\",\r\n    \"permanent_address\": \"456 Home Ave\",\r\n    \"emergency_address\": \"789 Help Ln\",\r\n    \"duty_type_id\": \"1\",\r\n    \"duty_start_time\": \"09:00\",\r\n    \"duty_end_time\": \"17:00\",\r\n    \"working_location\": \"Main Entrance\",\r\n    \"work_experience\": \"2 years\",\r\n    \"reference_by\": \"Manager Smith\",\r\n    \"emergency_contact_name_1\": \"Jane Doe\",\r\n    \"emergency_contact_phone_1\": \"9876543211\",\r\n    \"emergency_contact_name_2\": \"Bob Doe\",\r\n    \"emergency_contact_phone_2\": \"9876543212\"\r\n}",
+          "raw": "{\r\n    \"name\": \"John Doe\",\r\n    \"phone\": \"9876543210\",\r\n    \"email\": \"john.doe@example.com\",\r\n    \"current_address\": \"123 Main St\",\r\n    \"permanent_address\": \"456 Home Ave\",\r\n    \"emergency_address\": \"789 Help Ln\",\r\n    \"duty_type_id\": 1,\r\n    \"duty_start_time\": \"09:00\",\r\n    \"duty_end_time\": \"17:00\",\r\n    \"working_location\": \"Main Entrance\",\r\n    \"work_experience\": \"2 years\",\r\n    \"reference_by\": \"Manager Smith\",\r\n    \"emergency_contact_name_1\": \"Jane Doe\",\r\n    \"emergency_contact_phone_1\": \"9876543211\",\r\n    \"emergency_contact_name_2\": \"Bob Doe\",\r\n    \"emergency_contact_phone_2\": \"9876543212\"\r\n}",
           "options": {
             "raw": {
               "language": "json"
