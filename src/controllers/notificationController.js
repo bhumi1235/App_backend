@@ -7,7 +7,7 @@ export const getNotifications = async (req, res) => {
         const result = await pool.query(
             "SELECT * FROM notifications ORDER BY created_at DESC"
         );
-        return successResponse(res, "Notifications fetched successfully", result.rows);
+        return successResponse(res, "Notifications fetched successfully", { notifications: result.rows });
     } catch (error) {
         console.error(error);
         return errorResponse(res, "Server error", 500);

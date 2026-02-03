@@ -216,7 +216,7 @@ export const getAllGuards = async (req, res) => {
             }
         }));
 
-        return successResponse(res, "Guards fetched successfully", formattedGuards);
+        return successResponse(res, "Guards fetched successfully", { guards: formattedGuards });
     } catch (error) {
         console.error(error);
         return errorResponse(res, "Server error", 500);
