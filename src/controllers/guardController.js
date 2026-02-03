@@ -26,6 +26,7 @@ export const addGuard = async (req, res) => {
             emergency_contact_phone_1,
             emergency_contact_name_2,
             emergency_contact_phone_2,
+            status
         } = req.body;
 
         // Validate Duty Type ID
@@ -45,8 +46,8 @@ export const addGuard = async (req, res) => {
         const guardResult = await client.query(
             `INSERT INTO guards (
             name, profile_photo, phone, email, current_address, permanent_address, emergency_address,
-            duty_type_id, duty_start_time, duty_end_time, working_location, work_experience, reference_by
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id`,
+            duty_type_id, duty_start_time, duty_end_time, working_location, work_experience, reference_by, status
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING id`,
             [
                 name,
                 profile_photo,
@@ -61,6 +62,7 @@ export const addGuard = async (req, res) => {
                 working_location,
                 work_experience,
                 reference_by,
+                status !== undefined ? status : true // Default to true if missing
             ]
         );
 

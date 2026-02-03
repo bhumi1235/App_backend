@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS guards (
   working_location VARCHAR(255),
   work_experience VARCHAR(255),
   reference_by VARCHAR(255),
+  status BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
