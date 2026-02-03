@@ -144,6 +144,7 @@ export const addGuard = async (req, res) => {
             supervisorID: req.user ? formatSupervisorId(req.user.id) : null,
             supervisorName,
             profile_photo: profile_photo,
+            status: status !== undefined ? status : true,
             documents: uploadedDocuments
         }, 201); // 201 Created
 
@@ -248,6 +249,7 @@ export const getGuardById = async (req, res) => {
             // Work Info
             work_experience: guard.work_experience,
             reference_by: guard.reference_by,
+            status: guard.status,
 
             // Emergency Contacts
             emergency_contact_name_1: contacts[0]?.name || null,

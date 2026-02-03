@@ -271,6 +271,35 @@
         }
       },
       "response": []
+    },
+    {
+      "name": "Gaurd Details",
+      "id": "b2f77cd9-c0b3-4e13-a694-7249440b1cb7",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MiwicGhvbmUiOiI5ODc2NTQzMjEwIiwiaWF0IjoxNzcwMTE5NTI4LCJleHAiOjE3NzAyMDU5Mjh9.4T_KM6GyX9ejIbTbkTZwxCUWNzcOB3MRI2EG9Wnj6eo",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/guards/1",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "guards",
+            "1"
+          ]
+        }
+      },
+      "response": []
     }
   ],
   "variable": [
