@@ -137,7 +137,7 @@ export const addGuard = async (req, res) => {
         const formatSupervisorId = (id) => `SPR${String(id).padStart(3, '0')}`;
 
         // Helper to format Guard ID (can be moved to utils for reuse)
-        const formatGuardId = (id) => `GRD${String(id).padStart(3, '0')}`;
+        const formatGuardId = (id) => `G${String(id).padStart(3, '0')}`;
 
         return successResponse(res, "Guard added successfully", {
             guardID: formatGuardId(localGuardId || guardId), // Use Local ID if available
@@ -178,7 +178,7 @@ export const getAllGuards = async (req, res) => {
         // Format IDs in response
         const formattedGuards = result.rows.map(guard => ({
             ...guard,
-            guardID: `GRD${String(guard.local_guard_id || guard.id).padStart(3, '0')}`,
+            guardID: `G${String(guard.local_guard_id || guard.id).padStart(3, '0')}`,
             id: undefined, // Explicitly remove raw id
         }));
 
@@ -230,7 +230,7 @@ export const getGuardById = async (req, res) => {
 
         // Map response structure
         const responseData = {
-            guard_id: `GRD${String(guard.local_guard_id).padStart(3, '0')}`,
+            guard_id: `G${String(guard.local_guard_id).padStart(3, '0')}`,
             name: guard.name,
             phone: guard.phone,
             email: guard.email,
