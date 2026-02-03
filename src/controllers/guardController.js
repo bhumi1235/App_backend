@@ -81,14 +81,12 @@ export const addGuard = async (req, res) => {
         }
 
         // Insert Documents
-        const uploadedDocuments = [];
         if (req.files && req.files["documents"]) {
             for (const file of req.files["documents"]) {
                 await client.query(
                     "INSERT INTO documents (guard_id, file_path, original_name) VALUES ($1, $2, $3)",
                     [guardId, file.filename, file.originalname]
                 );
-                uploadedDocuments.push({ filename: file.filename, original_name: file.originalname });
             }
         }
 
@@ -112,9 +110,7 @@ export const addGuard = async (req, res) => {
         return successResponse(res, "Guard added successfully", {
             guardId,
             supervisorId: req.user ? req.user.id : null,
-            supervisorName,
-            profile_photo: profile_photo,
-            documents: uploadedDocuments
+            supervisorName
         }, 201); // 201 Created
 
     } catch (error) {
