@@ -34,7 +34,7 @@ export const validateLogin = [
 ];
 
 export const validateForgotPassword = [
-    body("phone").notEmpty().withMessage("Phone number is required"),
+    body("supervisorID").notEmpty().withMessage("Supervisor ID is required"),
     handleValidationErrors
 ];
 

@@ -120,10 +120,19 @@ export const login = async (req, res, next) => {
 // Forgot Password - Send OTP
 export const forgotPassword = async (req, res, next) => {
     try {
-        const { phone } = req.body;
+        const { supervisorID } = req.body;
+        const id = parseSupervisorId(supervisorID);
 
-        const result = await pool.query("SELECT * FROM employees WHERE phone = $1", [phone]);
+        if (!id) return errorResponse(res, "Invalid Supervisor ID format");
 
+        const result = await pool.query("SELECT * FROM employees WHERE id = $1", [id]);
+
+        if (result.rows.length === 0) {
+            return errorResponse(res, "User not found");
+        }
+
+        const employee = result.rows[0];
+        const phone = employee.phone; // Get phone from DB for OTP sending
 
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -132,16 +141,13 @@ export const forgotPassword = async (req, res, next) => {
         const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
 
         await pool.query(
-            "UPDATE employees SET otp_hash = $1, otp_expiry = $2 WHERE phone = $3",
-            [otpHash, otpExpiry, phone]
+            "UPDATE employees SET otp_hash = $1, otp_expiry = $2 WHERE id = $3",
+            [otpHash, otpExpiry, id]
         );
 
         console.log(`[MOCK SMS] OTP for ${phone}: ${otp}`);
 
-        const employee = result.rows[0];
-        if (!employee) {
-            return errorResponse(res, "User not found");
-        }
+        return successResponse(res, "OTP sent successfully", { otp, supervisorID: formatSupervisorId(employee.id) });
 
         return successResponse(res, "OTP sent successfully", { otp, supervisorID: formatSupervisorId(employee.id) });
     } catch (error) {
