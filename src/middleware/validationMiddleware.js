@@ -50,7 +50,7 @@ export const validateVerifyOtp = [
 ];
 
 export const validateResetPassword = [
-    body("phone").notEmpty().withMessage("Phone number is required"),
+    body("id").notEmpty().withMessage("User ID is required"),
     body("new_password").isLength({ min: 6 }).withMessage("Password must be at least 6 characters"),
     handleValidationErrors
 ];

@@ -199,30 +199,29 @@ export const verifyOtp = async (req, res, next) => {
 };
 
 // Reset Password
+// Reset Password
 export const resetPassword = async (req, res, next) => {
     try {
-        const { phone, new_password } = req.body;
+        const { id, new_password } = req.body;
 
-        // In production, you would verify the OTP token here.
-        // For this implementation, we update the password directly.
-
-        const result = await pool.query("SELECT * FROM employees WHERE phone = $1", [phone]);
+        const result = await pool.query("SELECT * FROM employees WHERE id = $1", [id]);
         if (result.rows.length === 0) {
             return errorResponse(res, "User not found");
         }
 
-        // OPTIONAL: Check if OTP was verified recently? 
-        // For now, proceeding with password update as requested.
+        const employee = result.rows[0];
+
+        // Verify password is explicitly provided and valid length is handled by validator
 
         const salt = await bcrypt.genSalt(10);
         const passwordHash = await bcrypt.hash(new_password, salt);
 
         await pool.query(
-            "UPDATE employees SET password_hash = $1, otp_hash = NULL, otp_expiry = NULL WHERE phone = $2",
-            [passwordHash, phone]
+            "UPDATE employees SET password_hash = $1, otp_hash = NULL, otp_expiry = NULL WHERE id = $2",
+            [passwordHash, id]
         );
 
-        return successResponse(res, "Password reset successfully", { user_id: result.rows[0].id });
+        return successResponse(res, "Password reset successfully", { user_id: employee.id });
     } catch (error) {
         next(error);
     }
