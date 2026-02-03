@@ -31,6 +31,8 @@ CREATE TABLE IF NOT EXISTS guards (
   work_experience VARCHAR(255),
   reference_by VARCHAR(255),
   status BOOLEAN DEFAULT TRUE,
+  supervisor_id INTEGER REFERENCES employees(id) ON DELETE SET NULL,
+  local_guard_id INTEGER DEFAULT 1,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

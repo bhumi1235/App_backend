@@ -42,12 +42,28 @@ export const addGuard = async (req, res) => {
             profile_photo = req.files["profile_photo"][0].filename;
         }
 
-        // Insert Guard (using duty_type_id)
+        // Identify Supervisor
+        const supervisor_id = req.user ? req.user.id : null;
+
+        // Determine Per-Supervisor Guard ID
+        let local_guard_id = 1;
+        if (supervisor_id) {
+            const maxIdResult = await client.query(
+                "SELECT MAX(local_guard_id) as max_id FROM guards WHERE supervisor_id = $1",
+                [supervisor_id]
+            );
+            if (maxIdResult.rows.length > 0 && maxIdResult.rows[0].max_id) {
+                local_guard_id = maxIdResult.rows[0].max_id + 1;
+            }
+        }
+
+        // Insert Guard (using duty_type_id, supervisor_id, local_guard_id)
         const guardResult = await client.query(
             `INSERT INTO guards (
             name, profile_photo, phone, email, current_address, permanent_address, emergency_address,
-            duty_type_id, duty_start_time, duty_end_time, working_location, work_experience, reference_by, status
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING id`,
+            duty_type_id, duty_start_time, duty_end_time, working_location, work_experience, reference_by, status,
+            supervisor_id, local_guard_id
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) RETURNING id, local_guard_id`,
             [
                 name,
                 profile_photo,
@@ -62,11 +78,14 @@ export const addGuard = async (req, res) => {
                 working_location,
                 work_experience,
                 reference_by,
-                status !== undefined ? status : true // Default to true if missing
+                status !== undefined ? status : true, // Default to true if missing
+                supervisor_id,
+                local_guard_id
             ]
         );
 
         const guardId = guardResult.rows[0].id;
+        const localGuardId = guardResult.rows[0].local_guard_id;
 
         // Insert Emergency Contacts
         if (emergency_contact_name_1 && emergency_contact_phone_1) {
@@ -121,7 +140,7 @@ export const addGuard = async (req, res) => {
         const formatGuardId = (id) => `GRD${String(id).padStart(3, '0')}`;
 
         return successResponse(res, "Guard added successfully", {
-            guardID: formatGuardId(guardId),
+            guardID: formatGuardId(localGuardId || guardId), // Use Local ID if available
             supervisorID: req.user ? formatSupervisorId(req.user.id) : null,
             supervisorName,
             profile_photo: profile_photo,
@@ -159,15 +178,8 @@ export const getAllGuards = async (req, res) => {
         // Format IDs in response
         const formattedGuards = result.rows.map(guard => ({
             ...guard,
-            guardID: `GRD${String(guard.id).padStart(3, '0')}`,
-            // Removing raw id might break frontend if it relies on it, but user asked to REPLACE it.
-            // Keeping raw id hidden or removed? "instead of id, make it guardID" implies replacement.
-            // I'll keep raw id as well for safety unless explicit, OR just add guardID. 
-            // User said "replace normal serial number id at all places".
-            // So I will remove `id` or just overwrite it? 
-            // Safe bet: Add guardID, maybe keep id for internal use if needed, but for "make it guardID" request:
+            guardID: `GRD${String(guard.local_guard_id || guard.id).padStart(3, '0')}`,
             id: undefined, // Explicitly remove raw id
-            guardID: `GRD${String(guard.id).padStart(3, '0')}`
         }));
 
         res.json(formattedGuards);
@@ -204,7 +216,7 @@ export const getGuardById = async (req, res) => {
         res.json({
             ...guard,
             id: undefined, // Remove raw ID
-            guardID: `GRD${String(guard.id).padStart(3, '0')}`,
+            guardID: `GRD${String(guard.local_guard_id || guard.id).padStart(3, '0')}`,
             emergency_contacts: contactsResult.rows,
             documents: documentsResult.rows,
         });
