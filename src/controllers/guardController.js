@@ -291,6 +291,6 @@ export const getGuardById = async (req, res) => {
         return successResponse(res, "Guard details fetched successfully", responseData);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: "Server error" });
+        return errorResponse(res, "Server error", 500);
     }
 };
