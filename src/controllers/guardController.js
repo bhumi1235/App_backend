@@ -29,8 +29,7 @@ export const addGuard = async (req, res) => {
             emergency_contact_name_1,
             emergency_contact_phone_1,
             emergency_contact_name_2,
-            emergency_contact_phone_2,
-            status
+            emergency_contact_phone_2
         } = req.body;
 
         // Validate Duty Type ID
@@ -65,9 +64,9 @@ export const addGuard = async (req, res) => {
         const guardResult = await client.query(
             `INSERT INTO guards (
             name, profile_photo, phone, email, current_address, permanent_address, emergency_address,
-            duty_type_id, duty_start_time, duty_end_time, working_location, work_experience, reference_by, status,
+            duty_type_id, duty_start_time, duty_end_time, working_location, work_experience, reference_by,
             supervisor_id, local_guard_id
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) RETURNING id, local_guard_id`,
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING id, local_guard_id`,
             [
                 name,
                 profile_photo,
@@ -82,7 +81,6 @@ export const addGuard = async (req, res) => {
                 working_location,
                 work_experience,
                 reference_by,
-                status !== undefined ? status : true, // Default to true if missing
                 supervisor_id,
                 local_guard_id
             ]
@@ -135,15 +133,37 @@ export const addGuard = async (req, res) => {
             }
         }
 
+        // Fetch Duty Type Name
+        const dutyTypeResult = await client.query("SELECT name FROM duty_types WHERE id = $1", [duty_type_id]);
+        const duty_type_name = dutyTypeResult.rows[0]?.name || "Unknown";
+
         await client.query("COMMIT");
 
         return successResponse(res, "Guard added successfully", {
-            guardID: formatGuardId(localGuardId || guardId),
-            supervisorID: req.user ? formatSupervisorId(req.user.id) : null,
-            supervisorName,
-            profile_photo: profile_photo,
-            status: status !== undefined ? status : true,
-            documents: uploadedDocuments
+            guardData: {
+                guardID: formatGuardId(localGuardId || guardId),
+                supervisorID: req.user ? formatSupervisorId(req.user.id) : null,
+                supervisorName,
+                name,
+                phone,
+                email,
+                profile_photo,
+                current_address,
+                permanent_address,
+                date_of_joining: new Date(), // Approximate for immediate response
+                duty_start_time,
+                duty_end_time,
+                duty_type_name,
+                assigned_location: working_location,
+                work_experience,
+                reference_by,
+                emergency_contact_name_1,
+                emergency_contact_phone_1,
+                emergency_contact_name_2,
+                emergency_contact_phone_2,
+                emergency_address,
+                documents: uploadedDocuments
+            }
         }, 201); // 201 Created
 
     } catch (error) {
@@ -176,9 +196,24 @@ export const getAllGuards = async (req, res) => {
 
         // Format IDs in response
         const formattedGuards = result.rows.map(guard => ({
-            ...guard,
-            guardID: formatGuardId(guard.local_guard_id || guard.id),
-            id: undefined, // Explicitly remove raw id
+            guardData: {
+                guardID: formatGuardId(guard.local_guard_id || guard.id),
+                supervisorID: req.user ? formatSupervisorId(req.user.id) : null, // Assuming context or skip
+                name: guard.name,
+                phone: guard.phone,
+                email: guard.email,
+                profile_photo: guard.profile_photo,
+                current_address: guard.current_address,
+                permanent_address: guard.permanent_address,
+                date_of_joining: guard.created_at,
+                duty_start_time: guard.duty_start_time,
+                duty_end_time: guard.duty_end_time,
+                duty_type_name: guard.duty_type_name,
+                assigned_location: guard.working_location,
+                work_experience: guard.work_experience,
+                reference_by: guard.reference_by,
+                // Status removed
+            }
         }));
 
         res.json(formattedGuards);
@@ -228,35 +263,29 @@ export const getGuardById = async (req, res) => {
 
         // Map response structure
         const responseData = {
-            guardID: formatGuardId(guard.local_guard_id),
-            name: guard.name,
-            phone: guard.phone,
-            email: guard.email,
-            profile_photo: guard.profile_photo, // URL logic if needed, currently filename
-            current_address: guard.current_address,
-            permanent_address: guard.permanent_address,
-            date_of_joining: guard.created_at,
-
-            // Duty & Shift
-            duty_start_time: guard.duty_start_time,
-            duty_end_time: guard.duty_end_time,
-            duty_type_name: guard.duty_type_name,
-            assigned_location: guard.working_location, // 'assigned_location' mapped from 'working_location'
-
-            // Work Info
-            work_experience: guard.work_experience,
-            reference_by: guard.reference_by,
-            status: guard.status,
-
-            // Emergency Contacts
-            emergency_contact_name_1: contacts[0]?.name || null,
-            emergency_contact_phone_1: contacts[0]?.phone || null,
-            emergency_contact_name_2: contacts[1]?.name || null,
-            emergency_contact_phone_2: contacts[1]?.phone || null,
-            emergency_address: guard.emergency_address,
-
-            // Documents
-            documents: documentsResult.rows.map(doc => doc.file_path) // Returning file paths/URLs
+            guardData: {
+                guardID: formatGuardId(guard.local_guard_id),
+                name: guard.name,
+                phone: guard.phone,
+                email: guard.email,
+                profile_photo: guard.profile_photo,
+                current_address: guard.current_address,
+                permanent_address: guard.permanent_address,
+                date_of_joining: guard.created_at,
+                duty_start_time: guard.duty_start_time,
+                duty_end_time: guard.duty_end_time,
+                duty_type_name: guard.duty_type_name,
+                assigned_location: guard.working_location,
+                work_experience: guard.work_experience,
+                reference_by: guard.reference_by,
+                // Status removed
+                emergency_contact_name_1: contacts[0]?.name || null,
+                emergency_contact_phone_1: contacts[0]?.phone || null,
+                emergency_contact_name_2: contacts[1]?.name || null,
+                emergency_contact_phone_2: contacts[1]?.phone || null,
+                emergency_address: guard.emergency_address,
+                documents: documentsResult.rows.map(doc => doc.file_path)
+            }
         };
 
         return successResponse(res, "Guard details fetched successfully", responseData);
