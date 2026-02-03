@@ -216,10 +216,10 @@ export const getAllGuards = async (req, res) => {
             }
         }));
 
-        res.json(formattedGuards);
+        return successResponse(res, "Guards fetched successfully", formattedGuards);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: "Server error" });
+        return errorResponse(res, "Server error", 500);
     }
 };
 
