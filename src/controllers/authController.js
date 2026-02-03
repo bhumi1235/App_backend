@@ -120,19 +120,16 @@ export const login = async (req, res, next) => {
 // Forgot Password - Send OTP
 export const forgotPassword = async (req, res, next) => {
     try {
-        const { supervisorID } = req.body;
-        const id = parseSupervisorId(supervisorID);
+        const { phone } = req.body;
 
-        if (!id) return errorResponse(res, "Invalid Supervisor ID format");
-
-        const result = await pool.query("SELECT * FROM employees WHERE id = $1", [id]);
+        const result = await pool.query("SELECT * FROM employees WHERE phone = $1", [phone]);
 
         if (result.rows.length === 0) {
-            return errorResponse(res, "User not found");
+            return errorResponse(res, "Phone number not registered");
         }
 
         const employee = result.rows[0];
-        const phone = employee.phone; // Get phone from DB for OTP sending
+        const id = employee.id; // Get ID for OTP update
 
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
 

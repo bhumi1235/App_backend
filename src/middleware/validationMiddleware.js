@@ -34,7 +34,7 @@ export const validateLogin = [
 ];
 
 export const validateForgotPassword = [
-    body("supervisorID").notEmpty().withMessage("Supervisor ID is required"),
+    body("phone").matches(/^[0-9]{10,15}$/).withMessage("Invalid phone number format"),
     handleValidationErrors
 ];
 
