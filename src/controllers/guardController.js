@@ -1,10 +1,13 @@
 import pool from "../config/db.js";
+import { successResponse, errorResponse } from "../utils/responseHandler.js";
 
 // Add a new guard
 export const addGuard = async (req, res) => {
     const client = await pool.connect();
     try {
         await client.query("BEGIN");
+
+        // ... (rest of function body remains same until response)
 
         const {
             name,
@@ -13,7 +16,7 @@ export const addGuard = async (req, res) => {
             current_address,
             permanent_address,
             emergency_address,
-            duty_type_id, // CHANGED: duty_type -> duty_type_id
+            duty_type_id,
             duty_start_time,
             duty_end_time,
             working_location,
@@ -29,7 +32,7 @@ export const addGuard = async (req, res) => {
         const dutyTypeCheck = await client.query("SELECT * FROM duty_types WHERE id = $1", [duty_type_id]);
         if (dutyTypeCheck.rows.length === 0) {
             await client.query("ROLLBACK");
-            return res.status(400).json({ message: "Invalid duty type selected" });
+            return errorResponse(res, "Invalid duty type selected");
         }
 
         // Handle Profile Photo
@@ -94,11 +97,18 @@ export const addGuard = async (req, res) => {
         );
 
         await client.query("COMMIT");
-        res.status(201).json({ message: "Guard added successfully", guardId });
+
+        return successResponse(res, "Guard added successfully", {
+            guard: {
+                id: guardId,
+                name: name
+            }
+        }, 201); // 201 Created
+
     } catch (error) {
         await client.query("ROLLBACK");
         console.error(error);
-        res.status(500).json({ message: "Server error" });
+        return errorResponse(res, "Server error", 500);
     } finally {
         client.release();
     }
