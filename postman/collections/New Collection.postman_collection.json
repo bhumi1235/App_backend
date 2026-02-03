@@ -177,6 +177,88 @@
         }
       },
       "response": []
+    },
+    {
+      "name": "Add Guards",
+      "id": "21757d05-c853-461a-91d5-fd5fcfa4cdb1",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicGhvbmUiOiI5ODc2NTQzMjEyIiwiaWF0IjoxNzcwMTAxMjM3LCJleHAiOjE3NzAxODc2Mzd9.UXgNc4aYd9peSYNbupO194yrr8Vgycm6G5nZ5OawcDM",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"name\": \"John Doe\",\r\n    \"phone\": \"9876543210\",\r\n    \"email\": \"john.doe@example.com\",\r\n    \"current_address\": \"123 Main St\",\r\n    \"permanent_address\": \"456 Home Ave\",\r\n    \"emergency_address\": \"789 Help Ln\",\r\n    \"duty_type_id\": \"1\",\r\n    \"duty_start_time\": \"09:00\",\r\n    \"duty_end_time\": \"17:00\",\r\n    \"working_location\": \"Main Entrance\",\r\n    \"work_experience\": \"2 years\",\r\n    \"reference_by\": \"Manager Smith\",\r\n    \"emergency_contact_name_1\": \"Jane Doe\",\r\n    \"emergency_contact_phone_1\": \"9876543211\",\r\n    \"emergency_contact_name_2\": \"Bob Doe\",\r\n    \"emergency_contact_phone_2\": \"9876543212\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/guards",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "guards"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "View Duty Types",
+      "id": "8bf1dc85-23d2-453c-bab8-f2e5bc96cf46",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/duty-types",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "duty-types"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Add Duty Types",
+      "id": "d7b1c7b2-5cfd-4103-82c2-974ce4cb2856",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"name\": \"Afternoon\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/duty-types",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "duty-types"
+          ]
+        }
+      },
+      "response": []
     }
   ],
   "variable": [
