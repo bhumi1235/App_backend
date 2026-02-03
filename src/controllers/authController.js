@@ -91,8 +91,7 @@ export const login = async (req, res, next) => {
 
         // Construct userData object (as requested)
         const userData = {
-            id: employee.id, // Internal ID kept for reference/logic
-            supervisorID: formatSupervisorId(employee.id), // Formatted ID
+            supervisorID: formatSupervisorId(employee.id), // Formatted ID ("SPR001")
             name: employee.name,
             phone: employee.phone,
             email: employee.email,

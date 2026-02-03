@@ -112,7 +112,7 @@ export const addGuard = async (req, res) => {
 
         return successResponse(res, "Guard added successfully", {
             guardId,
-            supervisorId: req.user ? formatSupervisorId(req.user.id) : null,
+            supervisorID: req.user ? formatSupervisorId(req.user.id) : null,
             supervisorName,
             profile_photo: profile_photo,
             documents: uploadedDocuments
