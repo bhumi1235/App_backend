@@ -190,36 +190,77 @@ export const getAllGuards = async (req, res) => {
 };
 
 // Get single guard details
+// Get single guard details
 export const getGuardById = async (req, res) => {
+    // Expecting ID as number (local_guard_id)
     const { id } = req.params;
+    const supervisor_id = req.user ? req.user.id : null;
+
+    if (!supervisor_id) {
+        return errorResponse(res, "Unauthorized: Supervisor ID missing", 401);
+    }
+
     try {
-        const guardResult = await pool.query("SELECT * FROM guards WHERE id = $1", [
-            id,
-        ]);
+        // Fetch guard using local_guard_id + supervisor_id
+        const guardQuery = `
+            SELECT g.*, dt.name as duty_type_name 
+            FROM guards g 
+            LEFT JOIN duty_types dt ON g.duty_type_id = dt.id
+            WHERE g.local_guard_id = $1 AND g.supervisor_id = $2
+        `;
+        const guardResult = await pool.query(guardQuery, [id, supervisor_id]);
 
         if (guardResult.rows.length === 0) {
-            return res.status(404).json({ message: "Guard not found" });
+            return errorResponse(res, "Guard not found", 404);
         }
 
         const guard = guardResult.rows[0];
-
         // Fetch related data
         const contactsResult = await pool.query(
             "SELECT * FROM emergency_contacts WHERE guard_id = $1",
-            [id]
+            [guard.id]
         );
         const documentsResult = await pool.query(
             "SELECT * FROM documents WHERE guard_id = $1",
-            [id]
+            [guard.id]
         );
 
-        res.json({
-            ...guard,
-            id: undefined, // Remove raw ID
-            guardID: `GRD${String(guard.local_guard_id || guard.id).padStart(3, '0')}`,
-            emergency_contacts: contactsResult.rows,
-            documents: documentsResult.rows,
-        });
+        // Map Emergency Contacts (flatten array to named fields)
+        const contacts = contactsResult.rows;
+
+        // Map response structure
+        const responseData = {
+            guard_id: `GRD${String(guard.local_guard_id).padStart(3, '0')}`,
+            name: guard.name,
+            phone: guard.phone,
+            email: guard.email,
+            profile_photo: guard.profile_photo, // URL logic if needed, currently filename
+            current_address: guard.current_address,
+            permanent_address: guard.permanent_address,
+            date_of_joining: guard.created_at,
+
+            // Duty & Shift
+            duty_start_time: guard.duty_start_time,
+            duty_end_time: guard.duty_end_time,
+            duty_type_name: guard.duty_type_name,
+            assigned_location: guard.working_location, // 'assigned_location' mapped from 'working_location'
+
+            // Work Info
+            work_experience: guard.work_experience,
+            reference_by: guard.reference_by,
+
+            // Emergency Contacts
+            emergency_contact_name_1: contacts[0]?.name || null,
+            emergency_contact_phone_1: contacts[0]?.phone || null,
+            emergency_contact_name_2: contacts[1]?.name || null,
+            emergency_contact_phone_2: contacts[1]?.phone || null,
+            emergency_address: guard.emergency_address,
+
+            // Documents
+            documents: documentsResult.rows.map(doc => doc.file_path) // Returning file paths/URLs
+        };
+
+        return successResponse(res, "Guard details fetched successfully", responseData);
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: "Server error" });
