@@ -123,6 +123,34 @@
       "response": []
     },
     {
+      "name": "Resend OTP",
+      "id": "8c7e9480-c040-4532-9cac-8b98548425df",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"phone\": \"9876543210\",\r\n    \"id\":\"1\"\r\n    \r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/auth/resend-otp",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auth",
+            "resend-otp"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
       "name": "Reset Password",
       "id": "8b572ff9-3874-4d92-97df-420cdc805d26",
       "request": {

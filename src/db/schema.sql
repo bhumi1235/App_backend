@@ -9,6 +9,12 @@ CREATE TABLE IF NOT EXISTS admins (
   otp_attempts INTEGER DEFAULT 0
 );
 
+CREATE TABLE IF NOT EXISTS duty_types (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(50) UNIQUE NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS guards (
   id SERIAL PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
@@ -18,7 +24,7 @@ CREATE TABLE IF NOT EXISTS guards (
   current_address TEXT,
   permanent_address TEXT,
   emergency_address TEXT,
-  duty_type VARCHAR(50),
+  duty_type_id INTEGER REFERENCES duty_types(id),
   duty_start_time VARCHAR(20),
   duty_end_time VARCHAR(20),
   working_location VARCHAR(255),

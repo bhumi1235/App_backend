@@ -13,7 +13,7 @@ export const addGuard = async (req, res) => {
             current_address,
             permanent_address,
             emergency_address,
-            duty_type,
+            duty_type_id, // CHANGED: duty_type -> duty_type_id
             duty_start_time,
             duty_end_time,
             working_location,
@@ -25,17 +25,24 @@ export const addGuard = async (req, res) => {
             emergency_contact_phone_2,
         } = req.body;
 
+        // Validate Duty Type ID
+        const dutyTypeCheck = await client.query("SELECT * FROM duty_types WHERE id = $1", [duty_type_id]);
+        if (dutyTypeCheck.rows.length === 0) {
+            await client.query("ROLLBACK");
+            return res.status(400).json({ message: "Invalid duty type selected" });
+        }
+
         // Handle Profile Photo
         let profile_photo = null;
         if (req.files && req.files["profile_photo"]) {
             profile_photo = req.files["profile_photo"][0].filename;
         }
 
-        // Insert Guard
+        // Insert Guard (using duty_type_id)
         const guardResult = await client.query(
             `INSERT INTO guards (
             name, profile_photo, phone, email, current_address, permanent_address, emergency_address,
-            duty_type, duty_start_time, duty_end_time, working_location, work_experience, reference_by
+            duty_type_id, duty_start_time, duty_end_time, working_location, work_experience, reference_by
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id`,
             [
                 name,
@@ -45,7 +52,7 @@ export const addGuard = async (req, res) => {
                 current_address,
                 permanent_address,
                 emergency_address,
-                duty_type,
+                duty_type_id,
                 duty_start_time,
                 duty_end_time,
                 working_location,
@@ -101,15 +108,18 @@ export const addGuard = async (req, res) => {
 export const getAllGuards = async (req, res) => {
     const { search } = req.query;
     try {
-        let query = "SELECT * FROM guards";
+        let query = `
+            SELECT g.*, dt.name as duty_type_name 
+            FROM guards g 
+            LEFT JOIN duty_types dt ON g.duty_type_id = dt.id`;
         let params = [];
 
         if (search) {
-            query += " WHERE name ILIKE $1";
+            query += " WHERE g.name ILIKE $1";
             params.push(`%${search}%`);
         }
 
-        query += " ORDER BY created_at DESC";
+        query += " ORDER BY g.created_at DESC";
 
         const result = await pool.query(query, params);
         res.json(result.rows);
