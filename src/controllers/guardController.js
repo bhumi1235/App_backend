@@ -1,13 +1,17 @@
 import pool from "../config/db.js";
 import { successResponse, errorResponse } from "../utils/responseHandler.js";
 
+// Helper to format Supervisor ID
+const formatSupervisorId = (id) => `SPR${String(id).padStart(3, '0')}`;
+
+// Helper to format Guard ID
+const formatGuardId = (id) => `G${String(id).padStart(3, '0')}`;
+
 // Add a new guard
 export const addGuard = async (req, res) => {
     const client = await pool.connect();
     try {
         await client.query("BEGIN");
-
-        // ... (rest of function body remains same until response)
 
         const {
             name,
@@ -133,14 +137,8 @@ export const addGuard = async (req, res) => {
 
         await client.query("COMMIT");
 
-        // Helper to format Supervisor ID
-        const formatSupervisorId = (id) => `SPR${String(id).padStart(3, '0')}`;
-
-        // Helper to format Guard ID (can be moved to utils for reuse)
-        const formatGuardId = (id) => `G${String(id).padStart(3, '0')}`;
-
         return successResponse(res, "Guard added successfully", {
-            guardID: formatGuardId(localGuardId || guardId), // Use Local ID if available
+            guardID: formatGuardId(localGuardId || guardId),
             supervisorID: req.user ? formatSupervisorId(req.user.id) : null,
             supervisorName,
             profile_photo: profile_photo,
@@ -179,7 +177,7 @@ export const getAllGuards = async (req, res) => {
         // Format IDs in response
         const formattedGuards = result.rows.map(guard => ({
             ...guard,
-            guardID: `G${String(guard.local_guard_id || guard.id).padStart(3, '0')}`,
+            guardID: formatGuardId(guard.local_guard_id || guard.id),
             id: undefined, // Explicitly remove raw id
         }));
 
@@ -190,7 +188,6 @@ export const getAllGuards = async (req, res) => {
     }
 };
 
-// Get single guard details
 // Get single guard details
 export const getGuardById = async (req, res) => {
     // Expecting ID as number (local_guard_id)
@@ -231,7 +228,7 @@ export const getGuardById = async (req, res) => {
 
         // Map response structure
         const responseData = {
-            guard_id: `G${String(guard.local_guard_id).padStart(3, '0')}`,
+            guardID: formatGuardId(guard.local_guard_id),
             name: guard.name,
             phone: guard.phone,
             email: guard.email,
