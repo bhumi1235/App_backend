@@ -187,6 +187,9 @@ export const addGuard = async (req, res) => {
     } catch (error) {
         await client.query("ROLLBACK");
         console.error(error);
+        if (error.code === '23505') {
+            return errorResponse(res, "Phone number already exists for another guard", 400);
+        }
         return errorResponse(res, "Server error", 500);
     } finally {
         client.release();
@@ -448,6 +451,9 @@ export const editGuard = async (req, res) => {
     } catch (error) {
         await client.query("ROLLBACK");
         console.error(error);
+        if (error.code === '23505') {
+            return errorResponse(res, "Phone number already exists for another guard", 400);
+        }
         return errorResponse(res, "Server error", 500);
     } finally {
         client.release();

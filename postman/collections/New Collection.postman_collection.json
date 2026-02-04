@@ -407,6 +407,59 @@
         }
       },
       "response": []
+    },
+    {
+      "name": "Read Notifications",
+      "id": "de5dae3b-dc58-430c-a5bd-181850ed6c17",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MjUsInBob25lIjoiOTg3Njg4ODg5NiIsImlhdCI6MTc3MDE5NDYwMSwiZXhwIjoxNzcwMjgxMDAxfQ.oN0uh-ELgNk8GOGJJnxUEkHPhQcGQVZ87MpQUqJQIMg",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "PUT",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "id",
+              "value": "3",
+              "type": "text",
+              "uuid": "c4d1354f-f16b-4518-895e-5f42852eebf6"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{base_url}}/notifications/3/read",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "notifications",
+            "3",
+            "read"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "New Request",
+      "id": "a677dff4-af99-41f8-944a-5b3eebb35864",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": ""
+        }
+      },
+      "response": []
     }
   ],
   "variable": [

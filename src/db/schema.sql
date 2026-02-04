@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS guards (
   id SERIAL PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
   profile_photo VARCHAR(255),
-  phone VARCHAR(20),
+  phone VARCHAR(20) UNIQUE,
   email VARCHAR(255),
   current_address TEXT,
   permanent_address TEXT,
