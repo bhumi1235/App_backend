@@ -223,6 +223,10 @@ export const getAllGuards = async (req, res) => {
             }
         }));
 
+        if (result.rows.length === 0) {
+            return successResponse(res, "No guards found for this supervisor", { guards: [] });
+        }
+
         return successResponse(res, "Guards fetched successfully", { guards: formattedGuards });
     } catch (error) {
         console.error(error);

@@ -302,8 +302,46 @@
       "response": []
     },
     {
-      "name": "New Request",
+      "name": "Change Password",
       "id": "60cdfdaf-4b63-4a32-ade8-58ffc3212be2",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MjUsInBob25lIjoiOTg3Njg4ODg5NiIsImlhdCI6MTc3MDE4ODQwMiwiZXhwIjoxNzcwMjc0ODAyfQ.yQe2IM-bY2bq5ta1LFIoie7TwSIiWtKGDIALadVW30o",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "PUT",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"old_password\":\"password123\",\r\n    \"new_password\":\"newpass123\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/auth/change-password",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auth",
+            "change-password"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "New Request",
+      "id": "3f6034eb-5cd6-4457-ad1e-6ec82cf2664e",
       "request": {
         "method": "GET",
         "header": [],
