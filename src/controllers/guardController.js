@@ -274,7 +274,7 @@ export const getGuardById = async (req, res) => {
         const guardResult = await pool.query(guardQuery, [local_id, supervisor_id]);
 
         if (guardResult.rows.length === 0) {
-            return errorResponse(res, "Guard not found", 404);
+            return errorResponse(res, "Invalid Guard ID", 404);
         }
 
         const guard = guardResult.rows[0];
