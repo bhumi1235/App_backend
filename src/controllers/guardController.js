@@ -179,18 +179,21 @@ export const addGuard = async (req, res) => {
 export const getAllGuards = async (req, res) => {
     const { search } = req.query;
     try {
+        const supervisor_id = req.user.id;
+
         let query = `
             SELECT g.*, dt.name as duty_type_name 
             FROM guards g 
-            LEFT JOIN duty_types dt ON g.duty_type_id = dt.id`;
-        let params = [];
+            LEFT JOIN duty_types dt ON g.duty_type_id = dt.id
+            WHERE g.supervisor_id = $1`;
+        let params = [supervisor_id];
 
         if (search) {
-            query += " WHERE g.name ILIKE $1";
+            query += " AND g.name ILIKE $2";
             params.push(`%${search}%`);
         }
 
-        query += " ORDER BY g.created_at DESC";
+        query += " ORDER BY g.local_guard_id ASC"; // Order sequentially 1, 2, 3...
 
         const result = await pool.query(query, params);
 
