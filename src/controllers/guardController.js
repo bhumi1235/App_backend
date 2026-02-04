@@ -295,6 +295,7 @@ export const getGuardById = async (req, res) => {
         const responseData = {
             guardData: {
                 guardID: formatGuardId(guard.local_guard_id),
+                supervisorID: formatSupervisorId(guard.supervisor_id),
                 name: guard.name,
                 phone: guard.phone,
                 email: guard.email,
