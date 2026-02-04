@@ -5,11 +5,11 @@ import { successResponse, errorResponse } from "../utils/responseHandler.js";
 export const getNotifications = async (req, res) => {
     try {
         const supervisor_id = req.user.id;
+        // Order by LOCAL ID descending (newest first)
         const result = await pool.query(
-            "SELECT * FROM notifications WHERE supervisor_id = $1 ORDER BY created_at DESC",
+            "SELECT * FROM notifications WHERE supervisor_id = $1 ORDER BY local_notification_id DESC",
             [supervisor_id]
         );
-        // Return empty list if none found (standard behavior)
         return successResponse(res, "Notifications fetched successfully", { notifications: result.rows });
     } catch (error) {
         console.error(error);
@@ -19,7 +19,7 @@ export const getNotifications = async (req, res) => {
 
 // Mark notification as read
 export const markAsRead = async (req, res) => {
-    const { id } = req.params;
+    const { id } = req.params; // treating id param as local_notification_id
     const supervisor_id = req.user.id;
     try {
         if (id === "all") {
@@ -27,7 +27,8 @@ export const markAsRead = async (req, res) => {
             return successResponse(res, "All notifications marked as read");
         }
 
-        await pool.query("UPDATE notifications SET is_read = TRUE WHERE id = $1 AND supervisor_id = $2", [
+        // Use local_notification_id
+        await pool.query("UPDATE notifications SET is_read = TRUE WHERE local_notification_id = $1 AND supervisor_id = $2", [
             id, supervisor_id
         ]);
         return successResponse(res, "Notification marked as read");
@@ -39,10 +40,11 @@ export const markAsRead = async (req, res) => {
 
 // Delete one notification
 export const deleteNotification = async (req, res) => {
-    const { id } = req.params;
+    const { id } = req.params; // treating id param as local_notification_id
     const supervisor_id = req.user.id;
     try {
-        const result = await pool.query("DELETE FROM notifications WHERE id = $1 AND supervisor_id = $2 RETURNING *", [id, supervisor_id]);
+        // Use local_notification_id
+        const result = await pool.query("DELETE FROM notifications WHERE local_notification_id = $1 AND supervisor_id = $2 RETURNING *", [id, supervisor_id]);
         if (result.rows.length === 0) {
             return errorResponse(res, "Notification not found or unauthorized", 404);
         }

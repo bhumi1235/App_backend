@@ -122,11 +122,17 @@ export const addGuard = async (req, res) => {
             }
         }
 
-        // Create Notification linked to Supervisor
+        // Create Notification linked to Supervisor with Local unique ID
         if (supervisor_id) {
+            const maxNotifId = await client.query(
+                "SELECT MAX(local_notification_id) as max_id FROM notifications WHERE supervisor_id = $1",
+                [supervisor_id]
+            );
+            const local_notification_id = (maxNotifId.rows[0].max_id || 0) + 1;
+
             await client.query(
-                "INSERT INTO notifications (type, message, supervisor_id) VALUES ($1, $2, $3)",
-                ["GUARD_ADDED", `New guard added: ${name}`, supervisor_id]
+                "INSERT INTO notifications (type, message, supervisor_id, local_notification_id) VALUES ($1, $2, $3, $4)",
+                ["GUARD_ADDED", `New guard added: ${name}`, supervisor_id, local_notification_id]
             );
         }
 
