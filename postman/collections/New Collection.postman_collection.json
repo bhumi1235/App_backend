@@ -300,6 +300,18 @@
         }
       },
       "response": []
+    },
+    {
+      "name": "New Request",
+      "id": "60cdfdaf-4b63-4a32-ade8-58ffc3212be2",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": ""
+        }
+      },
+      "response": []
     }
   ],
   "variable": [

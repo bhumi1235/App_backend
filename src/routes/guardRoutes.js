@@ -12,6 +12,7 @@ router.post(
     "/",
     upload.fields([
         { name: "profile_photo", maxCount: 1 },
+        { name: "profileimage", maxCount: 1 },
         { name: "documents", maxCount: 10 },
     ]),
     validateAddGuard,

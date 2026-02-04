@@ -39,10 +39,14 @@ export const addGuard = async (req, res) => {
             return errorResponse(res, "Invalid duty type selected");
         }
 
-        // Handle Profile Photo
+        // Handle Profile Photo (Support both keys)
         let profile_photo = null;
-        if (req.files && req.files["profile_photo"]) {
-            profile_photo = req.files["profile_photo"][0].filename;
+        if (req.files) {
+            if (req.files["profileimage"]) {
+                profile_photo = req.files["profileimage"][0].filename;
+            } else if (req.files["profile_photo"]) {
+                profile_photo = req.files["profile_photo"][0].filename;
+            }
         }
 
         // Identify Supervisor
