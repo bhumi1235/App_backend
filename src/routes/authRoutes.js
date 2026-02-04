@@ -1,7 +1,7 @@
 import express from "express";
 // Auth middleware
 import authenticateToken from "../middleware/authMiddleware.js";
-import { upload } from "../middleware/uploadMiddleware.js";
+import upload from "../middleware/uploadMiddleware.js";
 
 // Validation
 import {
