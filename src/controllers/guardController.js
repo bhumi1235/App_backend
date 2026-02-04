@@ -190,6 +190,9 @@ export const addGuard = async (req, res) => {
         if (error.code === '23505') {
             return errorResponse(res, "Phone number already exists for another guard", 400);
         }
+        if (error.code === '23503') {
+            return errorResponse(res, "Invalid Supervisor or Duty Type (Please try logging in again)", 400);
+        }
         return errorResponse(res, "Server error", 500);
     } finally {
         client.release();
