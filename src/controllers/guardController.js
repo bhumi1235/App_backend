@@ -122,11 +122,13 @@ export const addGuard = async (req, res) => {
             }
         }
 
-        // Create Notification
-        await client.query(
-            "INSERT INTO notifications (type, message) VALUES ($1, $2)",
-            ["GUARD_ADDED", `New guard added: ${name}`]
-        );
+        // Create Notification linked to Supervisor
+        if (supervisor_id) {
+            await client.query(
+                "INSERT INTO notifications (type, message, supervisor_id) VALUES ($1, $2, $3)",
+                ["GUARD_ADDED", `New guard added: ${name}`, supervisor_id]
+            );
+        }
 
         // Fetch Supervisor Name (Logged-in User)
         let supervisorName = "Unknown";

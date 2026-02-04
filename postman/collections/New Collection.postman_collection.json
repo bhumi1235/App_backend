@@ -340,8 +340,65 @@
       "response": []
     },
     {
-      "name": "New Request",
+      "name": "Edit superviser profile",
       "id": "3f6034eb-5cd6-4457-ad1e-6ec82cf2664e",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MjUsInBob25lIjoiOTg3Njg4ODg5NiIsImlhdCI6MTc3MDE4ODQwMiwiZXhwIjoxNzcwMjc0ODAyfQ.yQe2IM-bY2bq5ta1LFIoie7TwSIiWtKGDIALadVW30o",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "PUT",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"name\":\"Rama\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/auth/profile",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auth",
+            "profile"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Edir guard details",
+      "id": "1541f70c-833b-41ab-af9c-f85fd641e123",
+      "request": {
+        "method": "PUT",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/guards/1",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "guards",
+            "1"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get notifications",
+      "id": "45698528-a2e3-404c-be90-8c9fe589605b",
       "request": {
         "method": "GET",
         "header": [],

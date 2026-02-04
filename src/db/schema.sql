@@ -54,6 +54,7 @@ CREATE TABLE IF NOT EXISTS notifications (
   type VARCHAR(50),
   message TEXT,
   is_read BOOLEAN DEFAULT FALSE,
+  supervisor_id INTEGER REFERENCES employees(id) ON DELETE CASCADE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
