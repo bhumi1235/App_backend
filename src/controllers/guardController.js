@@ -6,6 +6,12 @@ const formatSupervisorId = (id) => `SPR${String(id).padStart(3, '0')}`;
 
 // Helper to format Guard ID
 const formatGuardId = (id) => `G${String(id).padStart(3, '0')}`;
+// Helper to parse Guard ID
+const parseGuardId = (id) => {
+    if (!id) return null;
+    const numericId = id.toString().replace(/^G/i, '');
+    return parseInt(numericId, 10);
+};
 
 // Add a new guard
 export const addGuard = async (req, res) => {
@@ -244,12 +250,17 @@ export const getAllGuards = async (req, res) => {
 
 // Get single guard details
 export const getGuardById = async (req, res) => {
-    // Expecting ID as number (local_guard_id)
+    // Expecting ID as number (local_guard_id) or formatted string (G001)
     const { id } = req.params;
     const supervisor_id = req.user ? req.user.id : null;
 
     if (!supervisor_id) {
         return errorResponse(res, "Unauthorized: Supervisor ID missing", 401);
+    }
+
+    const local_id = parseGuardId(id);
+    if (!local_id) {
+        return errorResponse(res, "Invalid Guard ID format");
     }
 
     try {
@@ -260,7 +271,7 @@ export const getGuardById = async (req, res) => {
             LEFT JOIN duty_types dt ON g.duty_type_id = dt.id
             WHERE g.local_guard_id = $1 AND g.supervisor_id = $2
         `;
-        const guardResult = await pool.query(guardQuery, [id, supervisor_id]);
+        const guardResult = await pool.query(guardQuery, [local_id, supervisor_id]);
 
         if (guardResult.rows.length === 0) {
             return errorResponse(res, "Guard not found", 404);
@@ -318,8 +329,10 @@ export const getGuardById = async (req, res) => {
 export const editGuard = async (req, res) => {
     const client = await pool.connect();
     try {
-        const { id } = req.params; // local_guard_id
+        const { id } = req.params; // local_guard_id or Gxxx
         const supervisor_id = req.user ? req.user.id : null;
+
+        const local_id = parseGuardId(id);
 
         if (!supervisor_id) {
             client.release();
@@ -331,7 +344,7 @@ export const editGuard = async (req, res) => {
         // NOTE: We update by local_guard_id + supervisor_id
         // First get the real ID to update related tables
         const guardQuery = `SELECT id FROM guards WHERE local_guard_id = $1 AND supervisor_id = $2`;
-        const guardResult = await client.query(guardQuery, [id, supervisor_id]);
+        const guardResult = await client.query(guardQuery, [local_id, supervisor_id]);
 
         if (guardResult.rows.length === 0) {
             await client.query("ROLLBACK");
