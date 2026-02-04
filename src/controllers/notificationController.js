@@ -10,7 +10,16 @@ export const getNotifications = async (req, res) => {
             "SELECT * FROM notifications WHERE supervisor_id = $1 ORDER BY local_notification_id DESC",
             [supervisor_id]
         );
-        return successResponse(res, "Notifications fetched successfully", { notifications: result.rows });
+        // Format response to use local_notification_id as id
+        const formattedNotifications = result.rows.map(notif => ({
+            id: notif.local_notification_id,
+            type: notif.type,
+            message: notif.message,
+            is_read: notif.is_read,
+            created_at: notif.created_at
+        }));
+
+        return successResponse(res, "Notifications fetched successfully", { notifications: formattedNotifications });
     } catch (error) {
         console.error(error);
         return errorResponse(res, "Server error", 500);
