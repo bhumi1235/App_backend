@@ -294,3 +294,129 @@ export const getGuardById = async (req, res) => {
         return errorResponse(res, "Server error", 500);
     }
 };
+
+// Edit Guard
+export const editGuard = async (req, res) => {
+    const client = await pool.connect();
+    try {
+        const { id } = req.params; // local_guard_id
+        const supervisor_id = req.user ? req.user.id : null;
+
+        if (!supervisor_id) {
+            client.release();
+            return errorResponse(res, "Unauthorized: Supervisor ID missing", 401);
+        }
+
+        await client.query("BEGIN");
+
+        // NOTE: We update by local_guard_id + supervisor_id
+        // First get the real ID to update related tables
+        const guardQuery = `SELECT id FROM guards WHERE local_guard_id = $1 AND supervisor_id = $2`;
+        const guardResult = await client.query(guardQuery, [id, supervisor_id]);
+
+        if (guardResult.rows.length === 0) {
+            await client.query("ROLLBACK");
+            return errorResponse(res, "Guard not found", 404);
+        }
+
+        const realGuardId = guardResult.rows[0].id;
+
+        const {
+            name,
+            phone,
+            email,
+            current_address,
+            permanent_address,
+            emergency_address,
+            duty_type_id,
+            duty_start_time,
+            duty_end_time,
+            working_location,
+            work_experience,
+            reference_by,
+            emergency_contact_name_1,
+            emergency_contact_phone_1,
+            emergency_contact_name_2,
+            emergency_contact_phone_2
+        } = req.body;
+
+        // Update Guard Fields
+        const updates = [];
+        const values = [];
+        let idx = 1;
+
+        const addField = (col, val) => {
+            if (val !== undefined) {
+                updates.push(`${col} = $${idx++}`);
+                values.push(val);
+            }
+        };
+
+        addField("name", name);
+        addField("phone", phone);
+        addField("email", email);
+        addField("current_address", current_address);
+        addField("permanent_address", permanent_address);
+        addField("emergency_address", emergency_address);
+        addField("duty_type_id", duty_type_id);
+        addField("duty_start_time", duty_start_time);
+        addField("duty_end_time", duty_end_time);
+        addField("working_location", working_location);
+        addField("work_experience", work_experience);
+        addField("reference_by", reference_by);
+
+        if (req.files && req.files["profile_photo"]) {
+            addField("profile_photo", req.files["profile_photo"][0].filename);
+        }
+
+        if (updates.length > 0) {
+            values.push(realGuardId);
+            await client.query(
+                `UPDATE guards SET ${updates.join(", ")} WHERE id = $${idx}`,
+                values
+            );
+        }
+
+        // Update Emergency Contacts (Delete all and re-insert is simpler)
+        if (emergency_contact_name_1 || emergency_contact_name_2) {
+            await client.query("DELETE FROM emergency_contacts WHERE guard_id = $1", [realGuardId]);
+
+            if (emergency_contact_name_1 && emergency_contact_phone_1) {
+                await client.query(
+                    "INSERT INTO emergency_contacts (guard_id, name, phone) VALUES ($1, $2, $3)",
+                    [realGuardId, emergency_contact_name_1, emergency_contact_phone_1]
+                );
+            }
+            if (emergency_contact_name_2 && emergency_contact_phone_2) {
+                await client.query(
+                    "INSERT INTO emergency_contacts (guard_id, name, phone) VALUES ($1, $2, $3)",
+                    [realGuardId, emergency_contact_name_2, emergency_contact_phone_2]
+                );
+            }
+        }
+
+        // Documents (Append new documents)
+        if (req.files && req.files["documents"]) {
+            for (const file of req.files["documents"]) {
+                await client.query(
+                    "INSERT INTO documents (guard_id, file_path, original_name) VALUES ($1, $2, $3)",
+                    [realGuardId, file.filename, file.originalname]
+                );
+            }
+        }
+
+        await client.query("COMMIT");
+
+        // Return updated details logic (reuse formatted response logic if possible, or just message)
+        // User asked for "Edit" api, usually implies returning the updated object or just success.
+        // Assuming success message is sufficient for now, or minimal data.
+        return successResponse(res, "Guard details updated successfully");
+
+    } catch (error) {
+        await client.query("ROLLBACK");
+        console.error(error);
+        return errorResponse(res, "Server error", 500);
+    } finally {
+        client.release();
+    }
+};

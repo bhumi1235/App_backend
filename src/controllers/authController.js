@@ -234,8 +234,6 @@ export const resetPassword = async (req, res, next) => {
 
         const employee = result.rows[0];
 
-        // Verify password is explicitly provided and valid length is handled by validator
-
         const salt = await bcrypt.genSalt(10);
         const passwordHash = await bcrypt.hash(new_password, salt);
 
@@ -245,6 +243,104 @@ export const resetPassword = async (req, res, next) => {
         );
 
         return successResponse(res, "Password reset successfully", { supervisorID: formatSupervisorId(employee.id) });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// Edit Profile
+export const editProfile = async (req, res, next) => {
+    try {
+        const userId = req.user.id; // From authMiddleware
+        const { name, email, phone } = req.body;
+        let profile_photo = undefined;
+
+        if (req.file) {
+            profile_photo = req.file.filename;
+        }
+
+        // Initialize update fields
+        const fields = [];
+        const values = [];
+        let idx = 1;
+
+        if (name) {
+            fields.push(`name = $${idx++}`);
+            values.push(name);
+        }
+        if (email) {
+            fields.push(`email = $${idx++}`);
+            values.push(email);
+        }
+        if (phone) {
+            fields.push(`phone = $${idx++}`);
+            values.push(phone);
+        }
+        if (profile_photo) {
+            fields.push(`profile_photo = $${idx++}`);
+            values.push(profile_photo);
+        }
+
+        if (fields.length === 0) {
+            return errorResponse(res, "No fields to update");
+        }
+
+        values.push(userId);
+        const query = `UPDATE employees SET ${fields.join(", ")} WHERE id = $${idx} RETURNING id, name, email, phone, profile_photo`;
+
+        const result = await pool.query(query, values);
+
+        const updatedUser = result.rows[0];
+        const userData = {
+            supervisorID: formatSupervisorId(updatedUser.id),
+            name: updatedUser.name,
+            phone: updatedUser.phone,
+            email: updatedUser.email,
+            profileImage: updatedUser.profile_photo || null
+        };
+
+        return successResponse(res, "Profile updated successfully", { userData });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// Change Password
+export const changePassword = async (req, res, next) => {
+    try {
+        const userId = req.user.id;
+        const { old_password, new_password } = req.body;
+
+        const result = await pool.query("SELECT password_hash FROM employees WHERE id = $1", [userId]);
+        if (result.rows.length === 0) return errorResponse(res, "User not found");
+
+        const employee = result.rows[0];
+        const isMatch = await bcrypt.compare(old_password, employee.password_hash);
+
+        if (!isMatch) {
+            return errorResponse(res, "Incorrect old password");
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        const newHash = await bcrypt.hash(new_password, salt);
+
+        await pool.query("UPDATE employees SET password_hash = $1 WHERE id = $2", [newHash, userId]);
+
+        return successResponse(res, "Password changed successfully");
+    } catch (error) {
+        next(error);
+    }
+};
+
+// Delete Account
+export const deleteAccount = async (req, res, next) => {
+    try {
+        const userId = req.user.id;
+
+        // Hard Delete
+        await pool.query("DELETE FROM employees WHERE id = $1", [userId]);
+
+        return successResponse(res, "Account deleted successfully");
     } catch (error) {
         next(error);
     }

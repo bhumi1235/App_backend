@@ -32,3 +32,29 @@ export const markAsRead = async (req, res) => {
         return errorResponse(res, "Server error", 500);
     }
 };
+
+// Delete one notification
+export const deleteNotification = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const result = await pool.query("DELETE FROM notifications WHERE id = $1 RETURNING *", [id]);
+        if (result.rows.length === 0) {
+            return errorResponse(res, "Notification not found", 404);
+        }
+        return successResponse(res, "Notification deleted successfully");
+    } catch (error) {
+        console.error(error);
+        return errorResponse(res, "Server error", 500);
+    }
+};
+
+// Delete all notifications
+export const deleteAllNotifications = async (req, res) => {
+    try {
+        await pool.query("DELETE FROM notifications");
+        return successResponse(res, "All notifications deleted successfully");
+    } catch (error) {
+        console.error(error);
+        return errorResponse(res, "Server error", 500);
+    }
+};

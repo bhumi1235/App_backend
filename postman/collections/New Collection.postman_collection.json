@@ -261,7 +261,7 @@
       "response": []
     },
     {
-      "name": "Add Guards",
+      "name": "View Guards",
       "id": "642134c8-62db-4d41-a3ac-e520bb07148c",
       "request": {
         "method": "GET",

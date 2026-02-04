@@ -54,3 +54,14 @@ export const validateResetPassword = [
     body("new_password").isLength({ min: 6 }).withMessage("Password must be at least 6 characters"),
     handleValidationErrors
 ];
+
+export const validateEditProfile = [
+    body("email").optional().isEmail().withMessage("Invalid email format"),
+    handleValidationErrors
+];
+
+export const validateChangePassword = [
+    body("old_password").notEmpty().withMessage("Old password is required"),
+    body("new_password").isLength({ min: 6 }).withMessage("New password must be at least 6 characters"),
+    handleValidationErrors
+];
