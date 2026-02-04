@@ -65,3 +65,10 @@ export const validateChangePassword = [
     body("new_password").isLength({ min: 6 }).withMessage("New password must be at least 6 characters"),
     handleValidationErrors
 ];
+
+export const validateAddGuard = [
+    body("name").notEmpty().withMessage("Name is required"),
+    body("phone").matches(/^[0-9]{10,15}$/).withMessage("Invalid phone number format"),
+    body("working_location").notEmpty().withMessage("Working location is required"),
+    handleValidationErrors
+];
