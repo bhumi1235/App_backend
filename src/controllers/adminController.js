@@ -74,21 +74,21 @@ export const getAllSupervisors = async (req, res) => {
         console.log(`[GetSupervisors] Found ${result.rows.length} records.`);
 
         const formattedSupervisors = result.rows.map(sup => ({
-            supervisorData: { // Wrapped to match guardController style pattern
-                id: sup.id, // Keep original ID for logic
-                supervisorID: formatSupervisorId(sup.id), // Add formatted ID for Valid Display
-                name: sup.name,
-                email: sup.email,
-                phone: sup.phone,
-                status: sup.status, // "Active"
-                date_of_joining: sup.created_at, // Often preferred name
-                profileImage: sup.profile_photo || null // camelCase
-            }
+            id: sup.id,
+            supervisorID: formatSupervisorId(sup.id),
+            fullName: sup.name, // Frontend expects 'fullName'
+            email: sup.email,
+            phone: sup.phone,
+            status: sup.status, // "Active"
+            date_of_joining: sup.created_at,
+            profileImage: sup.profile_photo || null
         }));
 
-        console.log(`[GetSupervisors] Sending:`, JSON.stringify(formattedSupervisors[0])); // Log first item
+        console.log(`[GetSupervisors] Sending array of length:`, formattedSupervisors.length);
 
-        return successResponse(res, "Supervisors fetched successfully", { supervisors: formattedSupervisors });
+        // Return the array DIRECTLY as the data payload, not wrapped in { supervisors: ... }
+        // This allows frontend: res.data.filter(...) to work if res.data maps to this payload.
+        return successResponse(res, "Supervisors fetched successfully", formattedSupervisors);
     } catch (error) {
         console.error("[GetSupervisors] Error:", error);
         return errorResponse(res, "Server error", 500);
