@@ -109,31 +109,60 @@ export const listAdmins = async (req, res) => {
     }
 };
 
-// Create a new Admin (Optional per user request)
-export const createAdmin = async (req, res) => {
+// ... (createAdmin code)
+
+// Get Supervisor Details by ID
+export const getSupervisorById = async (req, res) => {
     try {
-        const { name, phone, email, password } = req.body;
-        console.log(`[Create Admin] Request for: ${email}`);
-
-        // Basic duplicate check
-        const check = await pool.query("SELECT * FROM admins WHERE email = $1", [email]);
-        if (check.rows.length > 0) {
-            console.log(`[Create Admin] Already exists: ${email}`);
-            return errorResponse(res, "Admin already exists");
-        }
-
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
-
-        await pool.query(
-            "INSERT INTO admins (name, email, password) VALUES ($1, $2, $3)",
-            [name, email, hashedPassword]
+        const { id } = req.params;
+        const result = await pool.query(
+            "SELECT id, name, email, phone, created_at, 'Active' as status FROM employees WHERE id = $1",
+            [id]
         );
 
-        console.log(`[Create Admin] Created successfully: ${email}`);
-        return successResponse(res, "Admin created successfully");
+        if (result.rows.length === 0) {
+            return errorResponse(res, "Supervisor not found", 404);
+        }
+
+        const s = result.rows[0];
+        const supervisorDetails = {
+            id: s.id,
+            fullName: s.name,      // Map name -> fullName
+            email: s.email,
+            phone: s.phone,
+            status: s.status,
+            createdDate: s.created_at // Map created_at -> createdDate
+        };
+
+        return res.status(200).json(supervisorDetails); // Bypass wrapper for direct access
     } catch (error) {
-        console.error("[Create Admin] Error:", error);
+        console.error("[GetSupervisorById] Error:", error);
+        return errorResponse(res, "Server error", 500);
+    }
+};
+
+// Get Guards for a specific Supervisor
+export const getSupervisorGuards = async (req, res) => {
+    try {
+        const { id } = req.params; // Supervisor ID
+
+        // Query guards for this supervisor
+        const result = await pool.query(
+            "SELECT id, name, phone, working_location, 'Active' as status FROM guards WHERE supervisor_id = $1 ORDER BY created_at DESC",
+            [id]
+        );
+
+        const formattedGuards = result.rows.map(g => ({
+            id: g.id,
+            fullName: g.name,           // Map name -> fullName
+            phone: g.phone,
+            assignedArea: g.working_location, // Map working_location -> assignedArea
+            status: g.status
+        }));
+
+        return res.status(200).json(formattedGuards); // Bypass wrapper
+    } catch (error) {
+        console.error("[GetSupervisorGuards] Error:", error);
         return errorResponse(res, "Server error", 500);
     }
 };
