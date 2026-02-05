@@ -41,7 +41,25 @@ export const login = async (req, res) => {
     }
 };
 
-// ... (Dashboard stats remains same)
+// Get Dashboard Stats
+export const getDashboardStats = async (req, res) => {
+    try {
+        const totalGuards = await pool.query("SELECT COUNT(*) FROM guards");
+        const totalSupervisors = await pool.query("SELECT COUNT(*) FROM employees");
+        const recentGuards = await pool.query("SELECT * FROM guards ORDER BY created_at DESC LIMIT 5");
+
+        const stats = {
+            totalGuards: parseInt(totalGuards.rows[0].count),
+            totalSupervisors: parseInt(totalSupervisors.rows[0].count),
+            recentGuards: recentGuards.rows
+        };
+
+        return successResponse(res, "Dashboard stats fetched successfully", stats);
+    } catch (error) {
+        console.error(error);
+        return errorResponse(res, "Server error", 500);
+    }
+};
 
 // Get All Supervisors
 export const getAllSupervisors = async (req, res) => {
