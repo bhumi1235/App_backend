@@ -61,14 +61,28 @@ export const getDashboardStats = async (req, res) => {
     }
 };
 
+// Helper to format Supervisor ID
+const formatSupervisorId = (id) => `SPR${String(id).padStart(3, '0')}`;
+
 // Get All Supervisors
 export const getAllSupervisors = async (req, res) => {
     try {
-        // Added 'Active' as static status to satisfy frontend filters
         const result = await pool.query(
             "SELECT id, name, email, phone, created_at, profile_photo, 'Active' as status FROM employees ORDER BY created_at DESC"
         );
-        return successResponse(res, "Supervisors fetched successfully", { supervisors: result.rows });
+
+        const formattedSupervisors = result.rows.map(sup => ({
+            id: sup.id, // Keep original ID for logic
+            supervisorID: formatSupervisorId(sup.id), // Add formatted ID for Valid Display
+            name: sup.name,
+            email: sup.email,
+            phone: sup.phone,
+            status: sup.status,
+            date_of_joining: sup.created_at, // Often preferred name
+            profileImage: sup.profile_photo || null // camelCase
+        }));
+
+        return successResponse(res, "Supervisors fetched successfully", { supervisors: formattedSupervisors });
     } catch (error) {
         console.error(error);
         return errorResponse(res, "Server error", 500);
