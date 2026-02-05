@@ -70,6 +70,7 @@ CREATE TABLE IF NOT EXISTS employees (
   otp_expiry TIMESTAMP,
   player_id VARCHAR(255),
   device_type VARCHAR(50),
+  role VARCHAR(20) DEFAULT 'supervisor',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

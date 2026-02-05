@@ -4,6 +4,7 @@ import authRoutes from "./routes/authRoutes.js";
 import guardRoutes from "./routes/guardRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
 import dutyTypeRoutes from "./routes/dutyTypeRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
 import errorHandler from "./middleware/errorMiddleware.js";
 
 const app = express();
@@ -23,6 +24,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/guards", guardRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/duty-types", dutyTypeRoutes);
+app.use("/api/admin", adminRoutes); // Mounts /dashboard, /supervisors, /create-admin
 
 app.use(errorHandler);
 

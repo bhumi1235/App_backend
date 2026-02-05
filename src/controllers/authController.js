@@ -34,12 +34,12 @@ export const signup = async (req, res, next) => {
         const hashedPassword = await bcrypt.hash(password, salt);
 
         const { rows } = await pool.query(
-            "INSERT INTO employees (name, phone, email, password_hash, player_id, device_type) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, name, phone, email, player_id, device_type",
+            "INSERT INTO employees (name, phone, email, password_hash, player_id, device_type, role) VALUES ($1, $2, $3, $4, $5, $6, 'supervisor') RETURNING id, name, phone, email, player_id, device_type, role",
             [name, phone, email, hashedPassword, player_id || null, device_type || null]
         );
 
         const newEmployee = rows[0];
-        const token = generateToken({ id: newEmployee.id, phone: newEmployee.phone });
+        const token = generateToken({ id: newEmployee.id, phone: newEmployee.phone, role: "supervisor" });
 
         const userData = {
             supervisorID: formatSupervisorId(newEmployee.id), // Formatted ID
@@ -48,6 +48,7 @@ export const signup = async (req, res, next) => {
             email: newEmployee.email,
             player_id: newEmployee.player_id,
             device_type: newEmployee.device_type,
+            role: "supervisor",
             profileImage: null // New user has no profile image
         };
 
@@ -95,7 +96,7 @@ export const login = async (req, res, next) => {
             );
         }
 
-        const token = generateToken({ id: employee.id, phone: employee.phone });
+        const token = generateToken({ id: employee.id, phone: employee.phone, role: "supervisor" });
 
         // Construct userData object (as requested)
         const userData = {
@@ -105,6 +106,7 @@ export const login = async (req, res, next) => {
             email: employee.email,
             player_id: player_id || employee.player_id,
             device_type: device_type || employee.device_type,
+            role: "supervisor",
             profileImage: employee.profile_photo || null // Add profile image
         };
 

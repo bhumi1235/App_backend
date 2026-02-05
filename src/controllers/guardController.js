@@ -208,13 +208,33 @@ export const getAllGuards = async (req, res) => {
         let query = `
             SELECT g.*, dt.name as duty_type_name 
             FROM guards g 
-            LEFT JOIN duty_types dt ON g.duty_type_id = dt.id
-            WHERE g.supervisor_id = $1`;
-        let params = [supervisor_id];
+            LEFT JOIN duty_types dt ON g.duty_type_id = dt.id`;
+
+        let params = [];
+
+        // Admin: Show all guards. Supervisor: Show only own guards.
+        if (req.user.role !== 'admin') {
+            query += " WHERE g.supervisor_id = $1";
+            params.push(supervisor_id);
+        } else {
+            // Placeholder for correct parameter indexing if search is added
+            // query += " WHERE 1=1"; 
+        }
 
         if (search) {
-            query += " AND g.name ILIKE $2";
-            params.push(`%${search}%`);
+            if (req.user.role !== 'admin') {
+                query += " AND g.name ILIKE $2";
+                params.push(`%${search}%`);
+            } else {
+                // If admin, this is the first where clause or AND
+                // But simplified: Admin sees all, if search -> WHERE name LIKE ...
+                // Correct logic:
+                // If supervisor: WHERE supervisor_id = $1 AND name LIKE $2
+                // If admin: WHERE name LIKE $1
+
+                query += " WHERE g.name ILIKE $1";
+                params.push(`%${search}%`);
+            }
         }
 
         query += " ORDER BY g.local_guard_id ASC"; // Order sequentially 1, 2, 3...
@@ -232,6 +252,7 @@ export const getAllGuards = async (req, res) => {
                 profile_photo: guard.profile_photo,
                 current_address: guard.current_address,
                 permanent_address: guard.permanent_address,
+                role: req.user.role, // Helpful debug info? Or maybe not needed.
                 date_of_joining: guard.created_at,
                 duty_start_time: guard.duty_start_time,
                 duty_end_time: guard.duty_end_time,
@@ -260,7 +281,7 @@ export const getGuardById = async (req, res) => {
     const { id } = req.params;
     const supervisor_id = req.user ? req.user.id : null;
 
-    if (!supervisor_id) {
+    if (!supervisor_id && req.user.role !== 'admin') {
         return errorResponse(res, "Unauthorized: Supervisor ID missing", 401);
     }
 
@@ -270,14 +291,21 @@ export const getGuardById = async (req, res) => {
     }
 
     try {
-        // Fetch guard using local_guard_id + supervisor_id
-        const guardQuery = `
+        // Admin can see any guard. Supervisor can only see own.
+        let guardQuery = `
             SELECT g.*, dt.name as duty_type_name 
             FROM guards g 
             LEFT JOIN duty_types dt ON g.duty_type_id = dt.id
-            WHERE g.local_guard_id = $1 AND g.supervisor_id = $2
+            WHERE g.local_guard_id = $1
         `;
-        const guardResult = await pool.query(guardQuery, [local_id, supervisor_id]);
+        const queryParams = [local_id];
+
+        if (req.user.role !== 'admin') {
+            guardQuery += " AND g.supervisor_id = $2";
+            queryParams.push(supervisor_id);
+        }
+
+        const guardResult = await pool.query(guardQuery, queryParams);
 
         if (guardResult.rows.length === 0) {
             return errorResponse(res, "Invalid Guard ID", 404);
