@@ -34,7 +34,7 @@ export const signup = async (req, res, next) => {
         const hashedPassword = await bcrypt.hash(password, salt);
 
         const { rows } = await pool.query(
-            "INSERT INTO employees (name, phone, email, password_hash, player_id, device_type, role) VALUES ($1, $2, $3, $4, $5, $6, 'supervisor') RETURNING id, name, phone, email, player_id, device_type, role",
+            "INSERT INTO employees (name, phone, email, password_hash, player_id, device_type) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, name, phone, email, player_id, device_type",
             [name, phone, email, hashedPassword, player_id || null, device_type || null]
         );
 

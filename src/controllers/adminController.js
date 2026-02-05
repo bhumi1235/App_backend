@@ -76,7 +76,8 @@ export const createAdmin = async (req, res) => {
         const { name, phone, email, password } = req.body;
 
         // Basic duplicate check
-        if (check.rows.length > 0) return errorResponse(res, "User already exists");
+        const check = await pool.query("SELECT * FROM admins WHERE email = $1", [email]);
+        if (check.rows.length > 0) return errorResponse(res, "Admin already exists");
 
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
