@@ -86,8 +86,12 @@ export const getAllSupervisors = async (req, res) => {
 
         console.log(`[GetSupervisors] Sending array of length:`, formattedSupervisors.length);
 
-        // Bypass successResponse to return a RAW ARRAY as expected by frontend's res.data.filter()
-        return res.status(200).json(formattedSupervisors);
+        // Return with success/message while keeping array accessible at res.data for frontend compatibility
+        return res.status(200).json({
+            success: true,
+            message: "Supervisors fetched successfully",
+            data: formattedSupervisors
+        });
     } catch (error) {
         console.error("[GetSupervisors] Error:", error);
         return errorResponse(res, "Server error", 500);
@@ -161,7 +165,11 @@ export const getSupervisorById = async (req, res) => {
             createdDate: s.created_at // Map created_at -> createdDate
         };
 
-        return res.status(200).json(supervisorDetails); // Bypass wrapper for direct access
+        return res.status(200).json({
+            success: true,
+            message: "Supervisor details fetched successfully",
+            data: supervisorDetails
+        });
     } catch (error) {
         console.error("[GetSupervisorById] Error:", error);
         return errorResponse(res, "Server error", 500);
@@ -187,7 +195,11 @@ export const getSupervisorGuards = async (req, res) => {
             status: g.status
         }));
 
-        return res.status(200).json(formattedGuards); // Bypass wrapper
+        return res.status(200).json({
+            success: true,
+            message: "Supervisor guards fetched successfully",
+            data: formattedGuards
+        });
     } catch (error) {
         console.error("[GetSupervisorGuards] Error:", error);
         return errorResponse(res, "Server error", 500);
@@ -250,4 +262,3 @@ export const deleteSupervisor = async (req, res) => {
         return errorResponse(res, "Server error", 500);
     }
 };
-

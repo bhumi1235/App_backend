@@ -248,8 +248,12 @@ export const getAllGuards = async (req, res) => {
             dateOfJoining: guard.created_at
         }));
 
-        // Return raw array (bypass successResponse wrapper)
-        return res.status(200).json(formattedGuards);
+        // Return with success/message while keeping array accessible at res.data for frontend compatibility
+        return res.status(200).json({
+            success: true,
+            message: "Guards fetched successfully",
+            data: formattedGuards
+        });
     } catch (error) {
         console.error("[getAllGuards] Error:", error);
         return errorResponse(res, "Server error", 500);
@@ -330,8 +334,14 @@ export const getGuardById = async (req, res) => {
             emergencyContactPhone2: contacts[1]?.phone || null
         };
 
-        // Return flat object (bypass successResponse wrapper)
-        return res.status(200).json(guardDetails);
+        // Return updated details logic (reuse formatted response logic if possible, or just message)
+        // User asked for "Edit" api, usually implies returning the updated object or just success.
+        // Assuming success message is sufficient for now, or minimal data.
+        return res.status(200).json({
+            success: true,
+            message: "Guard details fetched successfully",
+            data: guardDetails
+        });
     } catch (error) {
         console.error("[getGuardById] Error:", error);
         return errorResponse(res, "Server error", 500);
