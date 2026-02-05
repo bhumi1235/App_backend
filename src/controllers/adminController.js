@@ -27,7 +27,7 @@ export const login = async (req, res) => {
 
         return successResponse(res, "Admin login successful", {
             token,
-            user: { // Changed from 'admin' to 'user' to match potential frontend expectation
+            userData: { // Matched with authController pattern
                 id: admin.id,
                 name: admin.name,
                 email: admin.email,
@@ -74,14 +74,16 @@ export const getAllSupervisors = async (req, res) => {
         console.log(`[GetSupervisors] Found ${result.rows.length} records.`);
 
         const formattedSupervisors = result.rows.map(sup => ({
-            id: sup.id, // Keep original ID for logic
-            supervisorID: formatSupervisorId(sup.id), // Add formatted ID for Valid Display
-            name: sup.name,
-            email: sup.email,
-            phone: sup.phone,
-            status: sup.status, // "Active"
-            date_of_joining: sup.created_at, // Often preferred name
-            profileImage: sup.profile_photo || null // camelCase
+            supervisorData: { // Wrapped to match guardController style pattern
+                id: sup.id, // Keep original ID for logic
+                supervisorID: formatSupervisorId(sup.id), // Add formatted ID for Valid Display
+                name: sup.name,
+                email: sup.email,
+                phone: sup.phone,
+                status: sup.status, // "Active"
+                date_of_joining: sup.created_at, // Often preferred name
+                profileImage: sup.profile_photo || null // camelCase
+            }
         }));
 
         console.log(`[GetSupervisors] Sending:`, JSON.stringify(formattedSupervisors[0])); // Log first item
