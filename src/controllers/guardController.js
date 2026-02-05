@@ -248,7 +248,6 @@ export const getAllGuards = async (req, res) => {
             dateOfJoining: guard.created_at
         }));
 
-        // Return with success/message while keeping array accessible at res.data for frontend compatibility
         return res.status(200).json({
             success: true,
             message: "Guards fetched successfully",
@@ -334,9 +333,6 @@ export const getGuardById = async (req, res) => {
             emergencyContactPhone2: contacts[1]?.phone || null
         };
 
-        // Return updated details logic (reuse formatted response logic if possible, or just message)
-        // User asked for "Edit" api, usually implies returning the updated object or just success.
-        // Assuming success message is sufficient for now, or minimal data.
         return res.status(200).json({
             success: true,
             message: "Guard details fetched successfully",

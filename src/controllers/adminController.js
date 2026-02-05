@@ -86,7 +86,6 @@ export const getAllSupervisors = async (req, res) => {
 
         console.log(`[GetSupervisors] Sending array of length:`, formattedSupervisors.length);
 
-        // Return with success/message while keeping array accessible at res.data for frontend compatibility
         return res.status(200).json({
             success: true,
             message: "Supervisors fetched successfully",
