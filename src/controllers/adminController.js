@@ -12,14 +12,14 @@ export const login = async (req, res) => {
         const result = await pool.query("SELECT * FROM admins WHERE email = $1", [email]);
         if (result.rows.length === 0) {
             console.log(`[Admin Login] User not found: ${email}`);
-            return errorResponse(res, "Invalid email or password");
+            return errorResponse(res, "User not found. Please create an admin first.");
         }
 
         const admin = result.rows[0];
         const isMatch = await bcrypt.compare(password, admin.password);
         if (!isMatch) {
             console.log(`[Admin Login] Password mismatch for: ${email}`);
-            return errorResponse(res, "Invalid email or password");
+            return errorResponse(res, "Incorrect password.");
         }
 
         console.log(`[Admin Login] Success for: ${email}`);
@@ -31,7 +31,8 @@ export const login = async (req, res) => {
                 id: admin.id,
                 name: admin.name,
                 email: admin.email,
-                role: "admin"
+                role: "admin",
+                created_at: admin.created_at
             }
         });
     } catch (error) {
@@ -44,7 +45,7 @@ export const login = async (req, res) => {
 export const getDashboardStats = async (req, res) => {
     try {
         const totalGuards = await pool.query("SELECT COUNT(*) FROM guards");
-        const totalSupervisors = await pool.query("SELECT COUNT(*) FROM employees WHERE role = 'supervisor'");
+        const totalSupervisors = await pool.query("SELECT COUNT(*) FROM employees");
         const recentGuards = await pool.query("SELECT * FROM guards ORDER BY created_at DESC LIMIT 5");
 
         const stats = {
@@ -64,7 +65,7 @@ export const getDashboardStats = async (req, res) => {
 export const getAllSupervisors = async (req, res) => {
     try {
         const result = await pool.query(
-            "SELECT id, name, email, phone, role, created_at, profile_photo FROM employees WHERE role = 'supervisor' ORDER BY created_at DESC"
+            "SELECT id, name, email, phone, created_at, profile_photo FROM employees ORDER BY created_at DESC"
         );
         return successResponse(res, "Supervisors fetched successfully", { supervisors: result.rows });
     } catch (error) {
@@ -77,6 +78,16 @@ export const getAllSupervisors = async (req, res) => {
 // For now, let's just assume we list them. 
 // If specific management actions needed:
 // export const updateSupervisorStatus = ...
+
+// DEBUG: List all admins
+export const listAdmins = async (req, res) => {
+    try {
+        const result = await pool.query("SELECT id, name, email, created_at FROM admins");
+        return successResponse(res, "Admin List", result.rows);
+    } catch (error) {
+        return errorResponse(res, "Server error", 500);
+    }
+};
 
 // Create a new Admin (Optional per user request)
 export const createAdmin = async (req, res) => {
