@@ -68,7 +68,7 @@ const formatSupervisorId = (id) => `SPR${String(id).padStart(3, '0')}`;
 export const getAllSupervisors = async (req, res) => {
     try {
         const result = await pool.query(
-            "SELECT id, name, email, phone, created_at, profile_photo, 'Active' as status FROM employees ORDER BY created_at DESC"
+            "SELECT id, name, email, phone, created_at, profile_photo, status FROM employees ORDER BY created_at DESC"
         );
 
         console.log(`[GetSupervisors] Found ${result.rows.length} records.`);
@@ -143,7 +143,7 @@ export const getSupervisorById = async (req, res) => {
     try {
         const { id } = req.params;
         const result = await pool.query(
-            "SELECT id, name, email, phone, created_at, 'Active' as status FROM employees WHERE id = $1",
+            "SELECT id, name, email, phone, created_at, status FROM employees WHERE id = $1",
             [id]
         );
 
@@ -193,3 +193,61 @@ export const getSupervisorGuards = async (req, res) => {
         return errorResponse(res, "Server error", 500);
     }
 };
+
+// Update Supervisor Status (Suspend/Activate)
+export const updateSupervisorStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+
+        // Validate status value
+        const validStatuses = ['Active', 'Suspended'];
+        if (!status || !validStatuses.includes(status)) {
+            return errorResponse(res, "Invalid status. Must be 'Active' or 'Suspended'", 400);
+        }
+
+        // Update status
+        const result = await pool.query(
+            "UPDATE employees SET status = $1 WHERE id = $2 RETURNING id, name, status",
+            [status, id]
+        );
+
+        if (result.rows.length === 0) {
+            return errorResponse(res, "Supervisor not found", 404);
+        }
+
+        console.log(`[UpdateSupervisorStatus] Supervisor ${id} status changed to ${status}`);
+        return successResponse(res, `Supervisor ${status === 'Active' ? 'activated' : 'suspended'} successfully`, {
+            supervisor: result.rows[0]
+        });
+    } catch (error) {
+        console.error("[UpdateSupervisorStatus] Error:", error);
+        return errorResponse(res, "Server error", 500);
+    }
+};
+
+// Delete Supervisor (Soft Delete - Set status to Terminated)
+export const deleteSupervisor = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Soft delete: Set status to 'Terminated'
+        const result = await pool.query(
+            "UPDATE employees SET status = 'Terminated' WHERE id = $1 RETURNING id, name",
+            [id]
+        );
+
+        if (result.rows.length === 0) {
+            return errorResponse(res, "Supervisor not found", 404);
+        }
+
+        console.log(`[DeleteSupervisor] Supervisor ${id} (${result.rows[0].name}) terminated`);
+        return successResponse(res, "Supervisor terminated successfully", {
+            supervisor: result.rows[0]
+        });
+    } catch (error) {
+        console.error("[DeleteSupervisor] Error:", error);
+        return errorResponse(res, "Server error", 500);
+    }
+};
+
