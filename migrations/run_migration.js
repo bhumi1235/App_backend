@@ -1,4 +1,4 @@
-import pool from "../config/db.js";
+import pool from "../src/config/db.js";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -11,7 +11,7 @@ const runMigration = async () => {
         console.log("🔄 Running supervisor status migration...");
 
         // Read migration file
-        const migrationPath = path.join(__dirname, "migration_add_supervisor_status.sql");
+        const migrationPath = path.join(__dirname, "001_add_supervisor_status.sql");
         const migrationSQL = fs.readFileSync(migrationPath, "utf8");
 
         // Execute migration
