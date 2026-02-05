@@ -86,9 +86,8 @@ export const getAllSupervisors = async (req, res) => {
 
         console.log(`[GetSupervisors] Sending array of length:`, formattedSupervisors.length);
 
-        // Return the array DIRECTLY as the data payload, not wrapped in { supervisors: ... }
-        // This allows frontend: res.data.filter(...) to work if res.data maps to this payload.
-        return successResponse(res, "Supervisors fetched successfully", formattedSupervisors);
+        // Bypass successResponse to return a RAW ARRAY as expected by frontend's res.data.filter()
+        return res.status(200).json(formattedSupervisors);
     } catch (error) {
         console.error("[GetSupervisors] Error:", error);
         return errorResponse(res, "Server error", 500);
