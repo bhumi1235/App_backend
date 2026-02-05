@@ -203,7 +203,8 @@ export const addGuard = async (req, res) => {
 export const getAllGuards = async (req, res) => {
     const { search } = req.query;
     try {
-        const supervisor_id = req.user.id;
+        const supervisor_id = req.user?.id;
+        const isAdmin = req.user?.role === 'admin';
 
         let query = `
             SELECT g.*, dt.name as duty_type_name 
@@ -213,64 +214,44 @@ export const getAllGuards = async (req, res) => {
         let params = [];
 
         // Admin: Show all guards. Supervisor: Show only own guards.
-        if (req.user.role !== 'admin') {
+        if (!isAdmin && supervisor_id) {
             query += " WHERE g.supervisor_id = $1";
             params.push(supervisor_id);
-        } else {
-            // Placeholder for correct parameter indexing if search is added
-            // query += " WHERE 1=1"; 
         }
 
         if (search) {
-            if (req.user.role !== 'admin') {
+            if (!isAdmin && supervisor_id) {
                 query += " AND g.name ILIKE $2";
                 params.push(`%${search}%`);
             } else {
-                // If admin, this is the first where clause or AND
-                // But simplified: Admin sees all, if search -> WHERE name LIKE ...
-                // Correct logic:
-                // If supervisor: WHERE supervisor_id = $1 AND name LIKE $2
-                // If admin: WHERE name LIKE $1
-
                 query += " WHERE g.name ILIKE $1";
                 params.push(`%${search}%`);
             }
         }
 
-        query += " ORDER BY g.local_guard_id ASC"; // Order sequentially 1, 2, 3...
+        query += " ORDER BY g.created_at DESC";
 
         const result = await pool.query(query, params);
 
-        // Format IDs in response
+        // Format for frontend: flat array with specific field names
         const formattedGuards = result.rows.map(guard => ({
-            guardData: {
-                guardID: formatGuardId(guard.local_guard_id || guard.id),
-                supervisorID: req.user ? formatSupervisorId(req.user.id) : null, // Assuming context or skip
-                name: guard.name,
-                phone: guard.phone,
-                email: guard.email,
-                profile_photo: guard.profile_photo,
-                current_address: guard.current_address,
-                permanent_address: guard.permanent_address,
-                role: req.user.role, // Helpful debug info? Or maybe not needed.
-                date_of_joining: guard.created_at,
-                duty_start_time: guard.duty_start_time,
-                duty_end_time: guard.duty_end_time,
-                duty_type_name: guard.duty_type_name,
-                assigned_location: guard.working_location,
-                work_experience: guard.work_experience,
-                reference_by: guard.reference_by,
-                // Status removed
-            }
+            id: guard.id,
+            guardID: formatGuardId(guard.local_guard_id || guard.id),
+            fullName: guard.name,  // Frontend expects fullName
+            phone: guard.phone,
+            email: guard.email,
+            assignedArea: guard.working_location,  // Frontend expects assignedArea
+            supervisorId: guard.supervisor_id,  // Frontend expects supervisorId
+            status: 'Active',  // Default status
+            profileImage: guard.profile_photo,
+            dutyType: guard.duty_type_name,
+            dateOfJoining: guard.created_at
         }));
 
-        if (result.rows.length === 0) {
-            return successResponse(res, "No guards found for this supervisor", { guards: [] });
-        }
-
-        return successResponse(res, "Guards fetched successfully", { guards: formattedGuards });
+        // Return raw array (bypass successResponse wrapper)
+        return res.status(200).json(formattedGuards);
     } catch (error) {
-        console.error(error);
+        console.error("[getAllGuards] Error:", error);
         return errorResponse(res, "Server error", 500);
     }
 };
