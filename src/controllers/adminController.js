@@ -71,20 +71,24 @@ export const getAllSupervisors = async (req, res) => {
             "SELECT id, name, email, phone, created_at, profile_photo, 'Active' as status FROM employees ORDER BY created_at DESC"
         );
 
+        console.log(`[GetSupervisors] Found ${result.rows.length} records.`);
+
         const formattedSupervisors = result.rows.map(sup => ({
             id: sup.id, // Keep original ID for logic
             supervisorID: formatSupervisorId(sup.id), // Add formatted ID for Valid Display
             name: sup.name,
             email: sup.email,
             phone: sup.phone,
-            status: sup.status,
+            status: sup.status, // "Active"
             date_of_joining: sup.created_at, // Often preferred name
             profileImage: sup.profile_photo || null // camelCase
         }));
 
+        console.log(`[GetSupervisors] Sending:`, JSON.stringify(formattedSupervisors[0])); // Log first item
+
         return successResponse(res, "Supervisors fetched successfully", { supervisors: formattedSupervisors });
     } catch (error) {
-        console.error(error);
+        console.error("[GetSupervisors] Error:", error);
         return errorResponse(res, "Server error", 500);
     }
 };
