@@ -1,5 +1,5 @@
 import express from "express";
-import { getDashboardStats, getAllSupervisors, createAdmin, login, listAdmins } from "../controllers/adminController.js";
+import { getDashboardStats, getAllSupervisors, getSupervisorById, getSupervisorGuards, createAdmin, login, listAdmins } from "../controllers/adminController.js";
 import authenticateAdmin from "../middleware/adminAuthMiddleware.js";
 
 const router = express.Router();
@@ -12,5 +12,7 @@ router.use(authenticateAdmin);
 
 router.get("/dashboard", getDashboardStats);
 router.get("/supervisors", getAllSupervisors);
+router.get("/supervisors/:id", getSupervisorById);
+router.get("/supervisors/:id/guards", getSupervisorGuards);
 
 export default router;
