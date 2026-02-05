@@ -5,11 +5,11 @@ import authenticateAdmin from "../middleware/adminAuthMiddleware.js";
 const router = express.Router();
 
 router.post("/login", login);
+router.post("/create-admin", createAdmin); // Public for bootstrapping
 
 router.use(authenticateAdmin);
 
 router.get("/dashboard", getDashboardStats);
 router.get("/supervisors", getAllSupervisors);
-router.post("/create-admin", createAdmin); // Optional helper to bootstrap more admins
 
 export default router;
