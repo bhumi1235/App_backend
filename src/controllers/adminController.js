@@ -109,7 +109,34 @@ export const listAdmins = async (req, res) => {
     }
 };
 
-// ... (createAdmin code)
+// Create a new Admin
+export const createAdmin = async (req, res) => {
+    try {
+        const { name, phone, email, password } = req.body;
+        console.log(`[Create Admin] Request for: ${email}`);
+
+        // Basic duplicate check
+        const check = await pool.query("SELECT * FROM admins WHERE email = $1", [email]);
+        if (check.rows.length > 0) {
+            console.log(`[Create Admin] Already exists: ${email}`);
+            return errorResponse(res, "Admin already exists");
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+
+        await pool.query(
+            "INSERT INTO admins (name, email, password) VALUES ($1, $2, $3)",
+            [name, email, hashedPassword]
+        );
+
+        console.log(`[Create Admin] Created successfully: ${email}`);
+        return successResponse(res, "Admin created successfully");
+    } catch (error) {
+        console.error("[Create Admin] Error:", error);
+        return errorResponse(res, "Server error", 500);
+    }
+};
 
 // Get Supervisor Details by ID
 export const getSupervisorById = async (req, res) => {
