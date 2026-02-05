@@ -7,7 +7,7 @@ export const getNotifications = async (req, res) => {
         const supervisor_id = req.user.id;
         // Order by LOCAL ID descending (newest first)
         const result = await pool.query(
-            "SELECT * FROM notifications WHERE supervisor_id = $1 ORDER BY local_notification_id DESC",
+            "SELECT * FROM notifications WHERE supervisor_id = $1 ORDER BY local_notification_id ASC",
             [supervisor_id]
         );
         // Format response to use local_notification_id as id

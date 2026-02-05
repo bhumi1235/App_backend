@@ -286,11 +286,11 @@ export const getGuardById = async (req, res) => {
         const guard = guardResult.rows[0];
         // Fetch related data
         const contactsResult = await pool.query(
-            "SELECT * FROM emergency_contacts WHERE guard_id = $1",
+            "SELECT * FROM emergency_contacts WHERE guard_id = $1 ORDER BY id ASC",
             [guard.id]
         );
         const documentsResult = await pool.query(
-            "SELECT * FROM documents WHERE guard_id = $1",
+            "SELECT * FROM documents WHERE guard_id = $1 ORDER BY id ASC",
             [guard.id]
         );
 
