@@ -258,11 +258,10 @@ export const getAllGuards = async (req, res) => {
 
 // Get single guard details
 export const getGuardById = async (req, res) => {
-    // Expecting ID as number (local_guard_id) or formatted string (G001)
     const { id } = req.params;
     const supervisor_id = req.user ? req.user.id : null;
 
-    if (!supervisor_id && req.user.role !== 'admin') {
+    if (!supervisor_id && req.user?.role !== 'admin') {
         return errorResponse(res, "Unauthorized: Supervisor ID missing", 401);
     }
 
@@ -277,11 +276,11 @@ export const getGuardById = async (req, res) => {
             SELECT g.*, dt.name as duty_type_name 
             FROM guards g 
             LEFT JOIN duty_types dt ON g.duty_type_id = dt.id
-            WHERE g.local_guard_id = $1
+            WHERE g.id = $1
         `;
-        const queryParams = [local_id];
+        const queryParams = [id];
 
-        if (req.user.role !== 'admin') {
+        if (req.user?.role !== 'admin') {
             guardQuery += " AND g.supervisor_id = $2";
             queryParams.push(supervisor_id);
         }
@@ -289,54 +288,52 @@ export const getGuardById = async (req, res) => {
         const guardResult = await pool.query(guardQuery, queryParams);
 
         if (guardResult.rows.length === 0) {
-            return errorResponse(res, "Invalid Guard ID", 404);
+            return errorResponse(res, "Guard not found", 404);
         }
 
         const guard = guardResult.rows[0];
+
         // Fetch related data
         const contactsResult = await pool.query(
             "SELECT * FROM emergency_contacts WHERE guard_id = $1 ORDER BY id ASC",
             [guard.id]
         );
-        const documentsResult = await pool.query(
-            "SELECT * FROM documents WHERE guard_id = $1 ORDER BY id ASC",
-            [guard.id]
-        );
 
-        // Map Emergency Contacts (flatten array to named fields)
         const contacts = contactsResult.rows;
 
-        // Map response structure
-        const responseData = {
-            guardData: {
-                guardID: formatGuardId(guard.local_guard_id),
-                supervisorID: formatSupervisorId(guard.supervisor_id),
-                name: guard.name,
-                phone: guard.phone,
-                email: guard.email,
-                profile_photo: guard.profile_photo,
-                current_address: guard.current_address,
-                permanent_address: guard.permanent_address,
-                date_of_joining: guard.created_at,
-                duty_start_time: guard.duty_start_time,
-                duty_end_time: guard.duty_end_time,
-                duty_type_name: guard.duty_type_name,
-                assigned_location: guard.working_location,
-                work_experience: guard.work_experience,
-                reference_by: guard.reference_by,
-                // Status removed
-                emergency_contact_name_1: contacts[0]?.name || null,
-                emergency_contact_phone_1: contacts[0]?.phone || null,
-                emergency_contact_name_2: contacts[1]?.name || null,
-                emergency_contact_phone_2: contacts[1]?.phone || null,
-                emergency_address: guard.emergency_address,
-                documents: documentsResult.rows.map(doc => doc.file_path)
-            }
+        // Format response to match frontend expectations
+        const guardDetails = {
+            id: guard.id,
+            guardID: formatGuardId(guard.local_guard_id || guard.id),
+            fullName: guard.name,  // Frontend expects fullName
+            phone: guard.phone,
+            email: guard.email,
+            dateOfBirth: null,  // Not in current schema
+            address: guard.current_address,  // Frontend expects address
+            emergencyContact: contacts[0]?.phone || null,  // Frontend expects single emergencyContact
+            assignedArea: guard.working_location,  // Frontend expects assignedArea
+            supervisorId: guard.supervisor_id,  // Frontend expects supervisorId
+            status: 'Active',  // Default status
+            profileImage: guard.profile_photo,
+            dutyType: guard.duty_type_name,
+            dateOfJoining: guard.created_at,
+            // Additional fields for detailed view
+            permanentAddress: guard.permanent_address,
+            emergencyAddress: guard.emergency_address,
+            dutyStartTime: guard.duty_start_time,
+            dutyEndTime: guard.duty_end_time,
+            workExperience: guard.work_experience,
+            referenceBy: guard.reference_by,
+            emergencyContactName1: contacts[0]?.name || null,
+            emergencyContactPhone1: contacts[0]?.phone || null,
+            emergencyContactName2: contacts[1]?.name || null,
+            emergencyContactPhone2: contacts[1]?.phone || null
         };
 
-        return successResponse(res, "Guard details fetched successfully", responseData);
+        // Return flat object (bypass successResponse wrapper)
+        return res.status(200).json(guardDetails);
     } catch (error) {
-        console.error(error);
+        console.error("[getGuardById] Error:", error);
         return errorResponse(res, "Server error", 500);
     }
 };
