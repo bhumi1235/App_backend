@@ -165,7 +165,7 @@ export const addGuard = async (req, res) => {
                 name,
                 phone,
                 email,
-                profile_photo,
+                profile_photo: profile_photo ? `/uploads/${profile_photo}` : null,
                 current_address,
                 permanent_address,
                 date_of_joining: new Date(), // Approximate for immediate response
@@ -304,6 +304,16 @@ export const getGuardById = async (req, res) => {
 
         const contacts = contactsResult.rows;
 
+        // Fetch documents
+        const documentsResult = await pool.query(
+            "SELECT original_name, file_path FROM documents WHERE guard_id = $1",
+            [guard.id]
+        );
+        const documents = documentsResult.rows.map(doc => ({
+            original_name: doc.original_name,
+            file_path: `/uploads/${doc.file_path}` // Prefix with /uploads/
+        }));
+
         // Format response to match frontend expectations
         const guardDetails = {
             id: guard.id,
@@ -330,7 +340,9 @@ export const getGuardById = async (req, res) => {
             emergencyContactName1: contacts[0]?.name || null,
             emergencyContactPhone1: contacts[0]?.phone || null,
             emergencyContactName2: contacts[1]?.name || null,
-            emergencyContactPhone2: contacts[1]?.phone || null
+            emergencyContactName2: contacts[1]?.name || null,
+            emergencyContactPhone2: contacts[1]?.phone || null,
+            documents: documents // Add documents to response
         };
 
         return res.status(200).json({
@@ -472,5 +484,56 @@ export const editGuard = async (req, res) => {
         return errorResponse(res, "Server error", 500);
     } finally {
         client.release();
+    }
+};
+
+// Upload multiple documents for a guard
+export const uploadGuardDocuments = async (req, res) => {
+    try {
+        const { id } = req.params; // Guard ID (Gxxx or local_guard_id)
+        const supervisor_id = req.user ? req.user.id : null;
+        const local_id = parseGuardId(id);
+
+        if (!local_id) return errorResponse(res, "Invalid Guard ID format");
+
+        // Verify Guard Exists & Authorization
+        let guardQuery = `SELECT id FROM guards WHERE local_guard_id = $1`;
+        let queryParams = [local_id];
+
+        if (req.user?.role !== 'admin') {
+            if (!supervisor_id) return errorResponse(res, "Unauthorized", 401);
+            guardQuery += ` AND supervisor_id = $2`;
+            queryParams.push(supervisor_id);
+        }
+
+        const guardResult = await pool.query(guardQuery, queryParams);
+
+        if (guardResult.rows.length === 0) {
+            return errorResponse(res, "Guard not found", 404);
+        }
+
+        const realGuardId = guardResult.rows[0].id;
+
+        if (!req.files || req.files.length === 0) {
+            return errorResponse(res, "No files uploaded", 400);
+        }
+
+        const uploadedDocuments = [];
+        for (const file of req.files) {
+            await pool.query(
+                "INSERT INTO documents (guard_id, file_path, original_name) VALUES ($1, $2, $3)",
+                [realGuardId, file.filename, file.originalname]
+            );
+            uploadedDocuments.push({
+                file_path: file.filename,
+                original_name: file.originalname
+            });
+        }
+
+        return successResponse(res, "Documents uploaded successfully", { documents: uploadedDocuments });
+
+    } catch (error) {
+        console.error("[uploadGuardDocuments] Error:", error);
+        return errorResponse(res, "Server error", 500);
     }
 };

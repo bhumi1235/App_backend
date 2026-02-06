@@ -1,5 +1,7 @@
 import pool from "../config/db.js";
 import { successResponse, errorResponse } from "../utils/responseHandler.js";
+import path from "path";
+import fs from "fs";
 import bcrypt from "bcryptjs";
 import { generateToken } from "../utils/jwtUtils.js";
 
@@ -81,7 +83,7 @@ export const getAllSupervisors = async (req, res) => {
             phone: sup.phone,
             status: sup.status, // "Active"
             date_of_joining: sup.created_at,
-            profileImage: sup.profile_photo || null
+            profileImage: sup.profile_photo ? `/uploads/${sup.profile_photo}` : null
         }));
 
         console.log(`[GetSupervisors] Sending array of length:`, formattedSupervisors.length);
@@ -233,6 +235,90 @@ export const updateSupervisorStatus = async (req, res) => {
         });
     } catch (error) {
         console.error("[UpdateSupervisorStatus] Error:", error);
+        return errorResponse(res, "Server error", 500);
+    }
+};
+
+// Update Supervisor Details
+export const updateSupervisor = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, email, phone } = req.body;
+        let profile_photo = undefined;
+
+        if (req.file) {
+            profile_photo = req.file.filename;
+
+            // Fetch current photo to delete it
+            const currentPhotoResult = await pool.query("SELECT profile_photo FROM employees WHERE id = $1", [id]);
+            if (currentPhotoResult.rows.length > 0) {
+                const oldPhoto = currentPhotoResult.rows[0].profile_photo;
+                if (oldPhoto) {
+                    const filePath = path.join("uploads", oldPhoto); // Assuming uploads are in root 'uploads' folder
+                    fs.unlink(filePath, (err) => {
+                        if (err) console.error(`[UpdateSupervisor] Failed to delete old photo: ${filePath}`, err);
+                        else console.log(`[UpdateSupervisor] Deleted old photo: ${filePath}`);
+                    });
+                }
+            }
+        }
+
+        // Initialize update fields
+        const fields = [];
+        const values = [];
+        let idx = 1;
+
+        if (name) {
+            fields.push(`name = $${idx++}`);
+            values.push(name);
+        }
+        if (email) {
+            fields.push(`email = $${idx++}`);
+            values.push(email);
+        }
+        if (phone) {
+            fields.push(`phone = $${idx++}`);
+            values.push(phone);
+        }
+        if (profile_photo) {
+            fields.push(`profile_photo = $${idx++}`);
+            values.push(profile_photo);
+        }
+
+        if (fields.length === 0) {
+            return errorResponse(res, "No fields to update");
+        }
+
+        values.push(id);
+        const query = `UPDATE employees SET ${fields.join(", ")} WHERE id = $${idx} RETURNING id, name, email, phone, profile_photo, status`;
+
+        const result = await pool.query(query, values);
+
+        if (result.rows.length === 0) {
+            return errorResponse(res, "Supervisor not found", 404);
+        }
+
+        const updatedUser = result.rows[0];
+        // Format for frontend
+        const userData = {
+            id: updatedUser.id,
+            supervisorID: formatSupervisorId(updatedUser.id),
+            fullName: updatedUser.name,
+            email: updatedUser.email,
+            phone: updatedUser.phone,
+            phone: updatedUser.phone,
+            status: updatedUser.status,
+            profileImage: updatedUser.profile_photo ? `/uploads/${updatedUser.profile_photo}` : null
+        };
+
+        return successResponse(res, "Supervisor updated successfully", userData);
+    } catch (error) {
+        console.error("[UpdateSupervisor] Error:", error);
+        // Check for unique constraint violations
+        if (error.code === '23505') {
+            if (error.detail.includes('email')) return errorResponse(res, "Email already in use");
+            if (error.detail.includes('phone')) return errorResponse(res, "Phone already in use");
+        }
         return errorResponse(res, "Server error", 500);
     }
 };

@@ -60,6 +60,12 @@ export const validateEditProfile = [
     handleValidationErrors
 ];
 
+export const validateUpdateSupervisor = [
+    body("email").optional().isEmail().withMessage("Invalid email format"),
+    body("phone").optional().matches(/^[0-9]{10,15}$/).withMessage("Invalid phone number format"),
+    handleValidationErrors
+];
+
 export const validateChangePassword = [
     body("old_password").notEmpty().withMessage("Old password is required"),
     body("new_password").isLength({ min: 6 }).withMessage("New password must be at least 6 characters"),

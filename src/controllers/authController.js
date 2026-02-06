@@ -17,6 +17,15 @@ const parseSupervisorId = (sprId) => {
 export const signup = async (req, res, next) => {
     try {
         const { name, phone, email, password, player_id, device_type } = req.body;
+        let profile_photo = null;
+
+        if (req.files) {
+            if (req.files["profile_photo"]) {
+                profile_photo = req.files["profile_photo"][0].filename;
+            } else if (req.files["profileimage"]) {
+                profile_photo = req.files["profileimage"][0].filename;
+            }
+        }
 
         // Check if phone already exists
         const phoneCheck = await pool.query("SELECT * FROM employees WHERE phone = $1", [phone]);
@@ -34,8 +43,8 @@ export const signup = async (req, res, next) => {
         const hashedPassword = await bcrypt.hash(password, salt);
 
         const { rows } = await pool.query(
-            "INSERT INTO employees (name, phone, email, password_hash, player_id, device_type) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, name, phone, email, player_id, device_type",
-            [name, phone, email, hashedPassword, player_id || null, device_type || null]
+            "INSERT INTO employees (name, phone, email, password_hash, player_id, device_type, profile_photo) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, name, phone, email, player_id, device_type, profile_photo",
+            [name, phone, email, hashedPassword, player_id || null, device_type || null, profile_photo]
         );
 
         const newEmployee = rows[0];
@@ -49,7 +58,7 @@ export const signup = async (req, res, next) => {
             player_id: newEmployee.player_id,
             device_type: newEmployee.device_type,
             role: "supervisor",
-            profileImage: null // New user has no profile image
+            profileImage: newEmployee.profile_photo ? `/uploads/${newEmployee.profile_photo}` : null // New user has no profile image
         };
 
         return successResponse(res, "Account created successfully.", {
@@ -107,7 +116,7 @@ export const login = async (req, res, next) => {
             player_id: player_id || employee.player_id,
             device_type: device_type || employee.device_type,
             role: "supervisor",
-            profileImage: employee.profile_photo || null // Add profile image
+            profileImage: employee.profile_photo ? `/uploads/${employee.profile_photo}` : null // Add profile image
         };
 
         return successResponse(res, "Login successfully", {
@@ -257,8 +266,12 @@ export const editProfile = async (req, res, next) => {
         const { name, email, phone } = req.body;
         let profile_photo = undefined;
 
-        if (req.file) {
-            profile_photo = req.file.filename;
+        if (req.files) {
+            if (req.files["profile_photo"]) {
+                profile_photo = req.files["profile_photo"][0].filename;
+            } else if (req.files["profileimage"]) {
+                profile_photo = req.files["profileimage"][0].filename;
+            }
         }
 
         // Initialize update fields
@@ -298,7 +311,7 @@ export const editProfile = async (req, res, next) => {
             name: updatedUser.name,
             phone: updatedUser.phone,
             email: updatedUser.email,
-            profileImage: updatedUser.profile_photo || null
+            profileImage: updatedUser.profile_photo ? `/uploads/${updatedUser.profile_photo}` : null
         };
 
         return successResponse(res, "Profile updated successfully", { userData });
@@ -338,6 +351,23 @@ export const changePassword = async (req, res, next) => {
 export const deleteAccount = async (req, res, next) => {
     try {
         const userId = req.user.id;
+        const { password, reason } = req.body;
+
+        if (!password) {
+            return errorResponse(res, "Password is required to delete account");
+        }
+
+        const result = await pool.query("SELECT password_hash, phone FROM employees WHERE id = $1", [userId]);
+        if (result.rows.length === 0) return errorResponse(res, "User not found");
+
+        const employee = result.rows[0];
+        const isMatch = await bcrypt.compare(password, employee.password_hash);
+
+        if (!isMatch) {
+            return errorResponse(res, "Incorrect password");
+        }
+
+        console.log(`[Delete Account] User ${employee.phone} deleting account. Reason: ${reason || "Not provided"}`);
 
         // Hard Delete
         await pool.query("DELETE FROM employees WHERE id = $1", [userId]);

@@ -1,6 +1,8 @@
 import express from "express";
-import { getDashboardStats, getAllSupervisors, getSupervisorById, getSupervisorGuards, updateSupervisorStatus, deleteSupervisor, createAdmin, login, listAdmins } from "../controllers/adminController.js";
+import { getDashboardStats, getAllSupervisors, getSupervisorById, getSupervisorGuards, updateSupervisorStatus, updateSupervisor, deleteSupervisor, createAdmin, login, listAdmins } from "../controllers/adminController.js";
 import authenticateAdmin from "../middleware/adminAuthMiddleware.js";
+import upload from "../middleware/uploadMiddleware.js";
+import { validateUpdateSupervisor } from "../middleware/validationMiddleware.js";
 
 const router = express.Router();
 
@@ -14,6 +16,7 @@ router.get("/dashboard", getDashboardStats);
 router.get("/supervisors", getAllSupervisors);
 router.get("/supervisors/:id", getSupervisorById);
 router.get("/supervisors/:id/guards", getSupervisorGuards);
+router.put("/supervisors/:id", upload.single("profile_photo"), validateUpdateSupervisor, updateSupervisor);
 router.put("/supervisors/:id/status", updateSupervisorStatus);
 router.delete("/supervisors/:id", deleteSupervisor);
 
