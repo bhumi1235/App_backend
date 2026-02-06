@@ -31,3 +31,33 @@ export const createDutyType = async (req, res) => {
         return errorResponse(res, "Server Error", 500);
     }
 };
+return errorResponse(res, "Server Error", 500);
+    }
+};
+
+// Update a duty type
+export const updateDutyType = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name } = req.body;
+
+        if (!name) return errorResponse(res, "Duty type name is required");
+
+        const result = await pool.query(
+            "UPDATE duty_types SET name = $1 WHERE id = $2 RETURNING *",
+            [name, id]
+        );
+
+        if (result.rows.length === 0) {
+            return errorResponse(res, "Duty type not found", 404);
+        }
+
+        return successResponse(res, "Duty type updated successfully", { duty_type: result.rows[0] });
+    } catch (error) {
+        if (error.code === '23505') {
+            return errorResponse(res, "Duty type already exists");
+        }
+        console.error(error);
+        return errorResponse(res, "Server Error", 500);
+    }
+};
