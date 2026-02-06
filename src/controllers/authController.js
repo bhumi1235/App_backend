@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import pool from "../config/db.js";
 import { generateToken } from "../utils/jwtUtils.js";
 import { successResponse, errorResponse } from "../utils/responseHandler.js";
+import { sendPushNotification } from "../services/oneSignalService.js";
 
 // Helper to format Supervisor ID
 const formatSupervisorId = (id) => `SPR${String(id).padStart(3, '0')}`;
@@ -313,6 +314,13 @@ export const editProfile = async (req, res, next) => {
             email: updatedUser.email,
             profileImage: updatedUser.profile_photo ? `/uploads/${updatedUser.profile_photo}` : null
         };
+
+        // Notify Supervisor
+        // Correction: Let's fetch it to be safe.
+        const currentUserResult = await pool.query("SELECT player_id FROM employees WHERE id = $1", [userId]);
+        if (currentUserResult.rows.length > 0 && currentUserResult.rows[0].player_id) {
+            await sendPushNotification([currentUserResult.rows[0].player_id], "Profile Updated", "You successfully updated your profile.");
+        }
 
         return successResponse(res, "Profile updated successfully", { userData });
     } catch (error) {

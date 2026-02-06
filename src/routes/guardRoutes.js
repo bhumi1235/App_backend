@@ -1,5 +1,5 @@
 import express from "express";
-import { addGuard, getAllGuards, getGuardById, editGuard, uploadGuardDocuments } from "../controllers/guardController.js";
+import { addGuard, getAllGuards, getGuardById, editGuard, deleteGuard, uploadGuardDocuments } from "../controllers/guardController.js";
 import authenticateToken from "../middleware/authMiddleware.js";
 import upload from "../middleware/uploadMiddleware.js";
 import { validateAddGuard } from "../middleware/validationMiddleware.js";
@@ -29,6 +29,7 @@ router.put(
     ]),
     editGuard
 );
+router.delete("/:id", deleteGuard);
 router.post("/:id/documents", upload.array("documents", 10), uploadGuardDocuments);
 router.get("/:id", getGuardById);
 

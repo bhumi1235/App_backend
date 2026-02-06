@@ -9,7 +9,7 @@ import { getFileUrl, deleteFile } from "../utils/fileUtils.js";
 // Admin Login
 export const login = async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { email, password, player_id } = req.body;
         console.log(`[Admin Login] Attempt for email: ${email}`);
 
         const result = await pool.query("SELECT * FROM admins WHERE email = $1", [email]);
@@ -25,16 +25,22 @@ export const login = async (req, res) => {
             return errorResponse(res, "Incorrect password.");
         }
 
+        // Update player_id if provided
+        if (player_id) {
+            await pool.query("UPDATE admins SET player_id = $1 WHERE id = $2", [player_id, admin.id]);
+        }
+
         console.log(`[Admin Login] Success for: ${email}`);
         const token = generateToken({ id: admin.id, email: admin.email, role: "admin" });
 
         return successResponse(res, "Admin login successful", {
             token,
-            userData: { // Matched with authController pattern
+            userData: {
                 id: admin.id,
                 name: admin.name,
                 email: admin.email,
                 role: "admin",
+                player_id: player_id || admin.player_id, // Return player_id
                 created_at: admin.created_at
             }
         });

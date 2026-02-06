@@ -1,5 +1,6 @@
 import pool from "../config/db.js";
 import { successResponse, errorResponse } from "../utils/responseHandler.js";
+import { sendPushNotification } from "../services/oneSignalService.js";
 
 // Helper to format Supervisor ID
 const formatSupervisorId = (id) => `SPR${String(id).padStart(3, '0')}`;
@@ -151,6 +152,17 @@ export const addGuard = async (req, res) => {
             }
         }
 
+        // Notify Admins
+        await notifyAdmins("Guard Added", `Supervisor ${supervisorName} added a new guard: ${name}`);
+
+        // Notify Supervisor
+        if (supervisor_id) {
+            const supervisorEmp = await client.query("SELECT player_id FROM employees WHERE id = $1", [supervisor_id]);
+            if (supervisorEmp.rows.length > 0 && supervisorEmp.rows[0].player_id) {
+                await sendPushNotification([supervisorEmp.rows[0].player_id], "Guard Added", `You successfully added guard: ${name}`);
+            }
+        }
+
         // Fetch Duty Type Name
         const dutyTypeResult = await client.query("SELECT name FROM duty_types WHERE id = $1", [duty_type_id]);
         const duty_type_name = dutyTypeResult.rows[0]?.name || "Unknown";
@@ -196,6 +208,69 @@ export const addGuard = async (req, res) => {
         return errorResponse(res, "Server error", 500);
     } finally {
         client.release();
+    }
+};
+
+// Delete Guard
+export const deleteGuard = async (req, res) => {
+    try {
+        const { id } = req.params; // Gxxx or local_guard_id
+        const supervisor_id = req.user ? req.user.id : null;
+        const local_id = parseGuardId(id);
+
+        if (!local_id) return errorResponse(res, "Invalid Guard ID format");
+
+        if (!supervisor_id && req.user?.role !== 'admin') {
+            return errorResponse(res, "Unauthorized", 401);
+        }
+
+        // Find the guard
+        let guardQuery = `SELECT id, name, supervisor_id FROM guards WHERE local_guard_id = $1`;
+        let queryParams = [local_id];
+
+        if (req.user?.role !== 'admin') {
+            guardQuery += ` AND supervisor_id = $2`;
+            queryParams.push(supervisor_id);
+        }
+
+        const guardResult = await pool.query(guardQuery, queryParams);
+
+        if (guardResult.rows.length === 0) {
+            return errorResponse(res, "Guard not found", 404);
+        }
+
+        const guard = guardResult.rows[0];
+
+        // Fetch Supervisor Name for notification (if supervisor is deleting)
+        let supervisorName = "Unknown";
+        if (req.user?.role !== 'admin') {
+            supervisorName = req.user.name || "Unknown";
+        }
+
+        // Delete (or Soft Delete?) - User asked for "Deletion", let's do hard delete for now or check preferences.
+        // Assuming Hard Delete based on previous task context "Adding Delete Functionality" usually implies DELETE.
+        // But for safety, checking FKs. Guard has documents, emergency_contacts.
+        // "ON DELETE CASCADE" might be set, or we need to delete children.
+        // Let's try simple DELETE, assuming DB handles cascade or we catch error.
+
+        // Actually, let's delete children primarily to be safe if no cascade.
+        await pool.query("DELETE FROM emergency_contacts WHERE guard_id = $1", [guard.id]);
+        await pool.query("DELETE FROM documents WHERE guard_id = $1", [guard.id]);
+        await pool.query("DELETE FROM guards WHERE id = $1", [guard.id]);
+
+        // Notify Supervisor
+        if (supervisor_id) {
+            const supervisorEmp = await pool.query("SELECT player_id FROM employees WHERE id = $1", [supervisor_id]);
+            if (supervisorEmp.rows.length > 0 && supervisorEmp.rows[0].player_id) {
+                await sendPushNotification([supervisorEmp.rows[0].player_id], "Guard Deleted", `You successfully deleted guard: ${guard.name}`);
+            }
+        }
+
+        return successResponse(res, "Guard deleted successfully");
+
+    } catch (error) {
+        console.error("[deleteGuard] Error:", error);
+        return errorResponse(res, "Server error", 500);
     }
 };
 
