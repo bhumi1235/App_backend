@@ -31,9 +31,7 @@ export const createDutyType = async (req, res) => {
         return errorResponse(res, "Server Error", 500);
     }
 };
-return errorResponse(res, "Server Error", 500);
-    }
-};
+
 
 // Update a duty type
 export const updateDutyType = async (req, res) => {
