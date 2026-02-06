@@ -59,3 +59,41 @@ export const updateDutyType = async (req, res) => {
         return errorResponse(res, "Server Error", 500);
     }
 };
+
+// Get a single duty type by ID
+export const getDutyTypeById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const result = await pool.query("SELECT * FROM duty_types WHERE id = $1", [id]);
+
+        if (result.rows.length === 0) {
+            return errorResponse(res, "Duty type not found", 404);
+        }
+
+        return successResponse(res, "Duty type fetched successfully", { duty_type: result.rows[0] });
+    } catch (error) {
+        console.error(error);
+        return errorResponse(res, "Server Error", 500);
+    }
+};
+
+// Delete a duty type
+export const deleteDutyType = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const result = await pool.query("DELETE FROM duty_types WHERE id = $1 RETURNING *", [id]);
+
+        if (result.rows.length === 0) {
+            return errorResponse(res, "Duty type not found", 404);
+        }
+
+        return successResponse(res, "Duty type deleted successfully");
+    } catch (error) {
+        console.error(error);
+        // Check for foreign key violation (e.g., if used by guards/logs)
+        if (error.code === '23503') {
+            return errorResponse(res, "Cannot delete duty type as it is currently in use");
+        }
+        return errorResponse(res, "Server Error", 500);
+    }
+};
