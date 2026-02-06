@@ -4,6 +4,7 @@ import path from "path";
 import fs from "fs";
 import bcrypt from "bcryptjs";
 import { generateToken } from "../utils/jwtUtils.js";
+import { getFileUrl, deleteFile } from "../utils/fileUtils.js";
 
 // Admin Login
 export const login = async (req, res) => {
@@ -83,7 +84,7 @@ export const getAllSupervisors = async (req, res) => {
             phone: sup.phone,
             status: sup.status, // "Active"
             date_of_joining: sup.created_at,
-            profileImage: sup.profile_photo ? `/uploads/${sup.profile_photo}` : null
+            profileImage: getFileUrl(sup.profile_photo)
         }));
 
         console.log(`[GetSupervisors] Sending array of length:`, formattedSupervisors.length);
@@ -247,9 +248,10 @@ export const createSupervisor = async (req, res) => {
 
         if (req.files) {
             if (req.files["profile_photo"]) {
-                profile_photo = req.files["profile_photo"][0].filename;
+                // Cloudinary returns 'path', local multer returns 'filename'
+                profile_photo = req.files["profile_photo"][0].path || req.files["profile_photo"][0].filename;
             } else if (req.files["profileimage"]) {
-                profile_photo = req.files["profileimage"][0].filename;
+                profile_photo = req.files["profileimage"][0].path || req.files["profileimage"][0].filename;
             }
         }
 
@@ -286,7 +288,7 @@ export const createSupervisor = async (req, res) => {
                 name: newSupervisor.name,
                 phone: newSupervisor.phone,
                 email: newSupervisor.email,
-                profile_photo: newSupervisor.profile_photo ? `/uploads/${newSupervisor.profile_photo}` : null,
+                profile_photo: getFileUrl(newSupervisor.profile_photo),
                 status: newSupervisor.status,
                 created_at: newSupervisor.created_at
             }
@@ -309,18 +311,16 @@ export const updateSupervisor = async (req, res) => {
         let profile_photo = undefined;
 
         if (req.file) {
-            profile_photo = req.file.filename;
+            // Cloudinary returns 'path', local multer returns 'filename'
+            profile_photo = req.file.path || req.file.filename;
 
             // Fetch current photo to delete it
             const currentPhotoResult = await pool.query("SELECT profile_photo FROM employees WHERE id = $1", [id]);
             if (currentPhotoResult.rows.length > 0) {
                 const oldPhoto = currentPhotoResult.rows[0].profile_photo;
                 if (oldPhoto) {
-                    const filePath = path.join("uploads", oldPhoto); // Assuming uploads are in root 'uploads' folder
-                    fs.unlink(filePath, (err) => {
-                        if (err) console.error(`[UpdateSupervisor] Failed to delete old photo: ${filePath}`, err);
-                        else console.log(`[UpdateSupervisor] Deleted old photo: ${filePath}`);
-                    });
+                    // Delete old file (works for both local and Cloudinary)
+                    await deleteFile(oldPhoto);
                 }
             }
         }
@@ -368,9 +368,8 @@ export const updateSupervisor = async (req, res) => {
             fullName: updatedUser.name,
             email: updatedUser.email,
             phone: updatedUser.phone,
-            phone: updatedUser.phone,
             status: updatedUser.status,
-            profileImage: updatedUser.profile_photo ? `/uploads/${updatedUser.profile_photo}` : null
+            profileImage: getFileUrl(updatedUser.profile_photo)
         };
 
         return successResponse(res, "Supervisor updated successfully", userData);
@@ -557,6 +556,48 @@ export const changeAdminPassword = async (req, res) => {
         return successResponse(res, "Password changed successfully");
     } catch (error) {
         console.error("[ChangeAdminPassword] Error:", error);
+        return errorResponse(res, "Server error", 500);
+    }
+};
+
+// Get List of Uploaded Files
+export const getUploadedFiles = async (req, res) => {
+    try {
+        const uploadsDir = path.join(process.cwd(), "uploads");
+
+        // Check if uploads directory exists
+        if (!fs.existsSync(uploadsDir)) {
+            return successResponse(res, "Uploads directory does not exist", {
+                files: [],
+                message: "No uploads directory found. It will be created when first file is uploaded."
+            });
+        }
+
+        // Read all files in the uploads directory
+        const files = fs.readdirSync(uploadsDir);
+
+        // Get file details
+        const fileDetails = files.map(filename => {
+            const filePath = path.join(uploadsDir, filename);
+            const stats = fs.statSync(filePath);
+
+            return {
+                filename,
+                url: `/uploads/${filename}`,
+                size: stats.size,
+                sizeKB: (stats.size / 1024).toFixed(2),
+                created: stats.birthtime,
+                modified: stats.mtime,
+                isDirectory: stats.isDirectory()
+            };
+        }).filter(file => !file.isDirectory); // Only return files, not directories
+
+        return successResponse(res, "Uploaded files retrieved successfully", {
+            count: fileDetails.length,
+            files: fileDetails
+        });
+    } catch (error) {
+        console.error("[GetUploadedFiles] Error:", error);
         return errorResponse(res, "Server error", 500);
     }
 };

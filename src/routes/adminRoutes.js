@@ -1,5 +1,5 @@
 import express from "express";
-import { getDashboardStats, getAllSupervisors, getSupervisorById, getSupervisorGuards, createSupervisor, updateSupervisorStatus, updateSupervisor, deleteSupervisor, updateTerminationReason, createAdmin, login, listAdmins, getAdminProfile, updateAdminProfile, changeAdminPassword } from "../controllers/adminController.js";
+import { getDashboardStats, getAllSupervisors, getSupervisorById, getSupervisorGuards, createSupervisor, updateSupervisorStatus, updateSupervisor, deleteSupervisor, updateTerminationReason, createAdmin, login, listAdmins, getAdminProfile, updateAdminProfile, changeAdminPassword, getUploadedFiles } from "../controllers/adminController.js";
 import authenticateAdmin from "../middleware/adminAuthMiddleware.js";
 import upload from "../middleware/uploadMiddleware.js";
 import { validateUpdateSupervisor } from "../middleware/validationMiddleware.js";
@@ -26,5 +26,8 @@ router.put("/supervisors/:id/termination-reason", updateTerminationReason);
 router.get("/profile", getAdminProfile);
 router.put("/profile", updateAdminProfile);
 router.put("/change-password", changeAdminPassword);
+
+// Uploads Management
+router.get("/uploads", getUploadedFiles);
 
 export default router;
