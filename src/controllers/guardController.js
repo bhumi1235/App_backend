@@ -428,8 +428,12 @@ export const editGuard = async (req, res) => {
         addField("work_experience", work_experience);
         addField("reference_by", reference_by);
 
-        if (req.files && req.files["profile_photo"]) {
-            addField("profile_photo", req.files["profile_photo"][0].filename);
+        if (req.files) {
+            if (req.files["profile_photo"]) {
+                addField("profile_photo", req.files["profile_photo"][0].filename);
+            } else if (req.files["profileimage"]) {
+                addField("profile_photo", req.files["profileimage"][0].filename);
+            }
         }
 
         if (updates.length > 0) {
