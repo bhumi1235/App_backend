@@ -364,10 +364,11 @@ export const getAdminProfile = async (req, res) => {
 
         const admin = result.rows[0];
         return successResponse(res, "Admin profile fetched successfully", {
-            admin: {
+            userData: {
                 id: admin.id,
                 name: admin.name,
                 email: admin.email,
+                role: "admin",
                 created_at: admin.created_at
             }
         });
@@ -411,10 +412,11 @@ export const updateAdminProfile = async (req, res) => {
 
         const updatedAdmin = result.rows[0];
         return successResponse(res, "Admin profile updated successfully", {
-            admin: {
+            userData: {
                 id: updatedAdmin.id,
                 name: updatedAdmin.name,
                 email: updatedAdmin.email,
+                role: "admin",
                 created_at: updatedAdmin.created_at
             }
         });
