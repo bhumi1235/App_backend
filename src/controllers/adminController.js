@@ -239,6 +239,68 @@ export const updateSupervisorStatus = async (req, res) => {
     }
 };
 
+// Create Supervisor (Admin Only)
+export const createSupervisor = async (req, res) => {
+    try {
+        const { name, phone, email, password } = req.body;
+        let profile_photo = null;
+
+        if (req.files) {
+            if (req.files["profile_photo"]) {
+                profile_photo = req.files["profile_photo"][0].filename;
+            } else if (req.files["profileimage"]) {
+                profile_photo = req.files["profileimage"][0].filename;
+            }
+        }
+
+        // Check if phone already exists
+        const phoneCheck = await pool.query("SELECT * FROM employees WHERE phone = $1", [phone]);
+        if (phoneCheck.rows.length > 0) {
+            return errorResponse(res, "Phone number already registered");
+        }
+
+        // Check if email already exists
+        if (email) {
+            const emailCheck = await pool.query("SELECT * FROM employees WHERE email = $1", [email]);
+            if (emailCheck.rows.length > 0) {
+                return errorResponse(res, "Email already registered");
+            }
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+
+        const { rows } = await pool.query(
+            "INSERT INTO employees (name, phone, email, password_hash, profile_photo, status) VALUES ($1, $2, $3, $4, $5, 'Active') RETURNING id, name, phone, email, profile_photo, status, created_at",
+            [name, phone, email || null, hashedPassword, profile_photo]
+        );
+
+        const newSupervisor = rows[0];
+        const supervisorID = formatSupervisorId(newSupervisor.id);
+        console.log(`[CreateSupervisor] Admin created supervisor: ${newSupervisor.name} (ID: ${supervisorID})`);
+
+        return successResponse(res, "Supervisor created successfully", {
+            supervisor: {
+                supervisorID,
+                id: newSupervisor.id,
+                name: newSupervisor.name,
+                phone: newSupervisor.phone,
+                email: newSupervisor.email,
+                profile_photo: newSupervisor.profile_photo ? `/uploads/${newSupervisor.profile_photo}` : null,
+                status: newSupervisor.status,
+                created_at: newSupervisor.created_at
+            }
+        });
+    } catch (error) {
+        console.error("[CreateSupervisor] Error:", error);
+        if (error.code === '23505') {
+            if (error.detail.includes('phone')) return errorResponse(res, "Phone number already registered");
+            if (error.detail.includes('email')) return errorResponse(res, "Email already registered");
+        }
+        return errorResponse(res, "Server error", 500);
+    }
+};
+
 // Update Supervisor Details
 export const updateSupervisor = async (req, res) => {
     try {

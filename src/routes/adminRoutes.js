@@ -1,5 +1,5 @@
 import express from "express";
-import { getDashboardStats, getAllSupervisors, getSupervisorById, getSupervisorGuards, updateSupervisorStatus, updateSupervisor, deleteSupervisor, updateTerminationReason, createAdmin, login, listAdmins, getAdminProfile, updateAdminProfile, changeAdminPassword } from "../controllers/adminController.js";
+import { getDashboardStats, getAllSupervisors, getSupervisorById, getSupervisorGuards, createSupervisor, updateSupervisorStatus, updateSupervisor, deleteSupervisor, updateTerminationReason, createAdmin, login, listAdmins, getAdminProfile, updateAdminProfile, changeAdminPassword } from "../controllers/adminController.js";
 import authenticateAdmin from "../middleware/adminAuthMiddleware.js";
 import upload from "../middleware/uploadMiddleware.js";
 import { validateUpdateSupervisor } from "../middleware/validationMiddleware.js";
@@ -14,6 +14,7 @@ router.use(authenticateAdmin);
 
 router.get("/dashboard", getDashboardStats);
 router.get("/supervisors", getAllSupervisors);
+router.post("/supervisors", upload.fields([{ name: "profile_photo", maxCount: 1 }, { name: "profileimage", maxCount: 1 }]), createSupervisor);
 router.get("/supervisors/:id", getSupervisorById);
 router.get("/supervisors/:id/guards", getSupervisorGuards);
 router.put("/supervisors/:id", upload.single("profile_photo"), validateUpdateSupervisor, updateSupervisor);
