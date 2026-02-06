@@ -507,7 +507,7 @@
       "response": []
     },
     {
-      "name": "New Request",
+      "name": "admin login",
       "id": "f15cc3f6-1667-4361-a0d5-c88de9fc1084",
       "request": {
         "method": "POST",
@@ -535,8 +535,37 @@
       "response": []
     },
     {
-      "name": "New Request",
+      "name": "get all supervisers",
       "id": "925a447c-32ee-40a8-8393-65f560523760",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJhZG1pbkBleGFtcGxlLmNvbSIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc3MDI3ODUwOCwiZXhwIjoxNzcwMzY0OTA4fQ.aIUh9X_Hg88BM3Avd06M9gkfKRR3yZiypnKqlOAFnTo",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/admin/supervisors",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "admin",
+            "supervisors"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "profile retrieval",
+      "id": "bd20ec98-fc6f-49f6-b047-cc5edc68fc54",
       "request": {
         "method": "GET",
         "header": [],

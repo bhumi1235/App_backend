@@ -327,23 +327,61 @@ export const updateSupervisor = async (req, res) => {
 export const deleteSupervisor = async (req, res) => {
     try {
         const { id } = req.params;
+        const { reason } = req.body;
 
-        // Soft delete: Set status to 'Terminated'
+        // Soft delete: Set status to 'Terminated' and store reason
         const result = await pool.query(
-            "UPDATE employees SET status = 'Terminated' WHERE id = $1 RETURNING id, name",
-            [id]
+            "UPDATE employees SET status = 'Terminated', termination_reason = $1 WHERE id = $2 RETURNING id, name, termination_reason",
+            [reason || null, id]
         );
 
         if (result.rows.length === 0) {
             return errorResponse(res, "Supervisor not found", 404);
         }
 
-        console.log(`[DeleteSupervisor] Supervisor ${id} (${result.rows[0].name}) terminated`);
+        console.log(`[DeleteSupervisor] Supervisor ${id} (${result.rows[0].name}) terminated. Reason: ${reason || 'Not provided'}`);
         return successResponse(res, "Supervisor terminated successfully", {
-            supervisor: result.rows[0]
+            supervisor: {
+                id: result.rows[0].id,
+                name: result.rows[0].name,
+                termination_reason: result.rows[0].termination_reason
+            }
         });
     } catch (error) {
         console.error("[DeleteSupervisor] Error:", error);
+        return errorResponse(res, "Server error", 500);
+    }
+};
+
+// Update Termination Reason
+export const updateTerminationReason = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { reason } = req.body;
+
+        if (!reason) {
+            return errorResponse(res, "Termination reason is required");
+        }
+
+        const result = await pool.query(
+            "UPDATE employees SET termination_reason = $1 WHERE id = $2 AND status = 'Terminated' RETURNING id, name, termination_reason",
+            [reason, id]
+        );
+
+        if (result.rows.length === 0) {
+            return errorResponse(res, "Terminated supervisor not found", 404);
+        }
+
+        console.log(`[UpdateTerminationReason] Updated reason for supervisor ${id}: ${reason}`);
+        return successResponse(res, "Termination reason updated successfully", {
+            supervisor: {
+                id: result.rows[0].id,
+                name: result.rows[0].name,
+                termination_reason: result.rows[0].termination_reason
+            }
+        });
+    } catch (error) {
+        console.error("[UpdateTerminationReason] Error:", error);
         return errorResponse(res, "Server error", 500);
     }
 };
