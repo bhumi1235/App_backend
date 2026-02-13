@@ -9,7 +9,7 @@ import { getFileUrl, deleteFile } from "../utils/fileUtils.js";
 // Admin Login
 export const login = async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { email, password, player_id } = req.body;
         console.log(`[Admin Login] Attempt for email: ${email}`);
 
         const result = await pool.query("SELECT * FROM admins WHERE email = $1", [email]);
