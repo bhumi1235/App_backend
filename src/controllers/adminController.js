@@ -77,7 +77,7 @@ const formatSupervisorId = (id) => `SPR${String(id).padStart(3, '0')}`;
 export const getAllSupervisors = async (req, res) => {
     try {
         const result = await pool.query(
-            "SELECT id, name, email, phone, created_at, profile_photo, status FROM employees ORDER BY created_at DESC"
+            "SELECT id, name, email, phone, created_at, profile_photo, status, termination_reason FROM employees ORDER BY created_at DESC"
         );
 
         console.log(`[GetSupervisors] Found ${result.rows.length} records.`);
@@ -90,7 +90,8 @@ export const getAllSupervisors = async (req, res) => {
             phone: sup.phone,
             status: sup.status, // "Active"
             date_of_joining: sup.created_at,
-            profileImage: getFileUrl(sup.profile_photo)
+            profileImage: getFileUrl(sup.profile_photo),
+            terminationReason: sup.termination_reason || null
         }));
 
         console.log(`[GetSupervisors] Sending array of length:`, formattedSupervisors.length);
