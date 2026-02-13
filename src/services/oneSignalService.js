@@ -1,17 +1,9 @@
 import https from 'https';
 
-const ONESIGNAL_APP_ID = process.env.ONESIGNAL_APP_ID;
-const ONESIGNAL_API_KEY = process.env.ONESIGNAL_API_KEY;
-
-/**
- * Send a push notification using OneSignal
- * @param {Array<string>} playerIds - Array of OneSignal Player IDs (targets)
- * @param {string} title - Notification Title
- * @param {string} message - Notification Message (Content)
- * @param {Object} data - Additional data payload (optional)
- * @returns {Promise} - Resolves with API response
- */
 export const sendPushNotification = async (playerIds, title, message, data = {}) => {
+    const ONESIGNAL_APP_ID = process.env.ONESIGNAL_APP_ID;
+    const ONESIGNAL_API_KEY = process.env.ONESIGNAL_API_KEY;
+
     return new Promise((resolve, reject) => {
         if (!ONESIGNAL_APP_ID || !ONESIGNAL_API_KEY) {
             console.warn("OneSignal App ID or API Key is missing. Notification skipped.");

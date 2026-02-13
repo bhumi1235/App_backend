@@ -579,10 +579,27 @@
       "name": "New Request",
       "id": "1a74e855-5c7e-4263-9cd3-7ca45fd1d88d",
       "request": {
-        "method": "GET",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicGhvbmUiOiI5ODc2ODg4ODk2Iiwicm9sZSI6InN1cGVydmlzb3IiLCJpYXQiOjE3NzA5Nzk1ODUsImV4cCI6MTc3MTA2NTk4NX0.Vp6ZJV37l64-EmVmmihScXO7fU6DxSWJE72e8Shg7yc",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "DELETE",
         "header": [],
         "url": {
-          "raw": ""
+          "raw": "{{base_url}}/guards/34",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "guards",
+            "34"
+          ]
         }
       },
       "response": []

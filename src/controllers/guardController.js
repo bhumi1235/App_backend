@@ -11,7 +11,8 @@ const formatGuardId = (id) => `G${String(id).padStart(3, '0')}`;
 const parseGuardId = (id) => {
     if (!id) return null;
     const numericId = id.toString().replace(/^G/i, '');
-    return parseInt(numericId, 10);
+    const parsed = parseInt(numericId, 10);
+    return isNaN(parsed) ? null : parsed;
 };
 
 // Add a new guard
@@ -40,10 +41,13 @@ export const addGuard = async (req, res) => {
         } = req.body;
 
         // Validate Duty Type ID
-        const dutyTypeCheck = await client.query("SELECT * FROM duty_types WHERE id = $1", [duty_type_id]);
-        if (dutyTypeCheck.rows.length === 0) {
-            await client.query("ROLLBACK");
-            return errorResponse(res, "Invalid duty type selected");
+        // Ensure duty_type_id is not undefined before querying
+        if (duty_type_id) {
+            const dutyTypeCheck = await client.query("SELECT * FROM duty_types WHERE id = $1", [duty_type_id]);
+            if (dutyTypeCheck.rows.length === 0) {
+                await client.query("ROLLBACK");
+                return errorResponse(res, "Invalid duty type selected");
+            }
         }
 
         // Handle Profile Photo (Support both keys)
@@ -72,6 +76,7 @@ export const addGuard = async (req, res) => {
         }
 
         // Insert Guard (using duty_type_id, supervisor_id, local_guard_id)
+        // Use || null to ensure undefined values are passed as null to Postgres
         const guardResult = await client.query(
             `INSERT INTO guards (
             name, profile_photo, phone, email, current_address, permanent_address, emergency_address,
@@ -79,19 +84,19 @@ export const addGuard = async (req, res) => {
             supervisor_id, local_guard_id
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING id, local_guard_id`,
             [
-                name,
-                profile_photo,
-                phone,
-                email,
-                current_address,
-                permanent_address,
-                emergency_address,
-                duty_type_id,
-                duty_start_time,
-                duty_end_time,
-                working_location,
-                work_experience,
-                reference_by,
+                name || null,
+                profile_photo || null,
+                phone || null,
+                email || null,
+                current_address || null,
+                permanent_address || null,
+                emergency_address || null,
+                duty_type_id || null,
+                duty_start_time || null,
+                duty_end_time || null,
+                working_location || null,
+                work_experience || null,
+                reference_by || null,
                 supervisor_id,
                 local_guard_id
             ]
@@ -132,34 +137,36 @@ export const addGuard = async (req, res) => {
         // Create Notification linked to Supervisor with Local unique ID
         let notificationResult = null;
         if (supervisor_id) {
-            const maxNotifId = await client.query(
-                "SELECT MAX(local_notification_id) as max_id FROM notifications WHERE supervisor_id = $1",
-                [supervisor_id]
-            );
-            const local_notification_id = (maxNotifId.rows[0].max_id || 0) + 1;
+            try {
+                const maxNotifId = await client.query(
+                    "SELECT MAX(local_notification_id) as max_id FROM notifications WHERE supervisor_id = $1",
+                    [supervisor_id]
+                );
+                const local_notification_id = (maxNotifId.rows[0].max_id || 0) + 1;
 
-            await client.query(
-                "INSERT INTO notifications (type, message, supervisor_id, local_notification_id) VALUES ($1, $2, $3, $4)",
-                ["GUARD_ADDED", `New guard added: ${name}`, supervisor_id, local_notification_id]
-            );
+                await client.query(
+                    "INSERT INTO notifications (type, message, supervisor_id, local_notification_id) VALUES ($1, $2, $3, $4)",
+                    ["GUARD_ADDED", `New guard added: ${name}`, supervisor_id, local_notification_id]
+                );
 
-            // Fetch Supervisor Name if not already available
-            let supervisorName = "Unknown";
-            const supervisorResult = await client.query("SELECT name FROM employees WHERE id = $1", [supervisor_id]);
-            if (supervisorResult.rows.length > 0) {
-                supervisorName = supervisorResult.rows[0].name;
-            }
-
-            // Notify Supervisor via Push
-            const supervisorEmp = await client.query("SELECT player_id FROM employees WHERE id = $1", [supervisor_id]);
-            if (supervisorEmp.rows.length > 0 && supervisorEmp.rows[0].player_id) {
-                notificationResult = await sendPushNotification([supervisorEmp.rows[0].player_id], "Guard Added", `You successfully added guard: ${name}`);
+                // Notify Supervisor via Push
+                const supervisorEmp = await client.query("SELECT player_id FROM employees WHERE id = $1", [supervisor_id]);
+                if (supervisorEmp.rows.length > 0 && supervisorEmp.rows[0].player_id) {
+                    notificationResult = await sendPushNotification([supervisorEmp.rows[0].player_id], "Guard Added", `You successfully added guard: ${name}`);
+                }
+            } catch (notificationError) {
+                console.error("Notification Error (Non-blocking):", notificationError);
+                // Swallow error so guard creation succeeds
+                notificationResult = { error: "Notification failed but guard created" };
             }
         }
 
         // Fetch Duty Type Name
-        const dutyTypeResult = await client.query("SELECT name FROM duty_types WHERE id = $1", [duty_type_id]);
-        const duty_type_name = dutyTypeResult.rows[0]?.name || "Unknown";
+        let duty_type_name = "Unknown";
+        if (duty_type_id) {
+            const dutyTypeResult = await client.query("SELECT name FROM duty_types WHERE id = $1", [duty_type_id]);
+            duty_type_name = dutyTypeResult.rows[0]?.name || "Unknown";
+        }
 
         await client.query("COMMIT");
 
@@ -193,14 +200,14 @@ export const addGuard = async (req, res) => {
 
     } catch (error) {
         await client.query("ROLLBACK");
-        console.error(error);
+        console.error("addGuard ERROR:", error);
         if (error.code === '23505') {
             return errorResponse(res, "Phone number already exists for another guard", 400);
         }
         if (error.code === '23503') {
             return errorResponse(res, "Invalid Supervisor or Duty Type (Please try logging in again)", 400);
         }
-        return errorResponse(res, "Server error", 500);
+        return errorResponse(res, "Server error: " + error.message, 500);
     } finally {
         client.release();
     }
@@ -240,13 +247,7 @@ export const deleteGuard = async (req, res) => {
             supervisorName = req.user.name || "Unknown";
         }
 
-        // Delete (or Soft Delete?) - User asked for "Deletion", let's do hard delete for now or check preferences.
-        // Assuming Hard Delete based on previous task context "Adding Delete Functionality" usually implies DELETE.
-        // But for safety, checking FKs. Guard has documents, emergency_contacts.
-        // "ON DELETE CASCADE" might be set, or we need to delete children.
-        // Let's try simple DELETE, assuming DB handles cascade or we catch error.
-
-        // Actually, let's delete children primarily to be safe if no cascade.
+        // Delete dependencies
         await pool.query("DELETE FROM emergency_contacts WHERE guard_id = $1", [guard.id]);
         await pool.query("DELETE FROM documents WHERE guard_id = $1", [guard.id]);
         await pool.query("DELETE FROM guards WHERE id = $1", [guard.id]);
