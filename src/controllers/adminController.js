@@ -9,7 +9,7 @@ import { getFileUrl, deleteFile } from "../utils/fileUtils.js";
 // Admin Login
 export const login = async (req, res) => {
     try {
-        const { email, password, player_id } = req.body;
+        const { email, password } = req.body;
         console.log(`[Admin Login] Attempt for email: ${email}`);
 
         const result = await pool.query("SELECT * FROM admins WHERE email = $1", [email]);
@@ -483,88 +483,7 @@ export const getAdminProfile = async (req, res) => {
     }
 };
 
-// Update Admin Profile
-export const updateAdminProfile = async (req, res) => {
-    try {
-        const adminId = req.user.id;
-        const { name, email } = req.body;
 
-        const fields = [];
-        const values = [];
-        let idx = 1;
-
-        if (name) {
-            fields.push(`name = $${idx++}`);
-            values.push(name);
-        }
-        if (email) {
-            fields.push(`email = $${idx++}`);
-            values.push(email);
-        }
-
-        if (fields.length === 0) {
-            return errorResponse(res, "No fields to update");
-        }
-
-        values.push(adminId);
-        const query = `UPDATE admins SET ${fields.join(", ")} WHERE id = $${idx} RETURNING id, name, email, created_at`;
-
-        const result = await pool.query(query, values);
-
-        if (result.rows.length === 0) {
-            return errorResponse(res, "Admin not found", 404);
-        }
-
-        const updatedAdmin = result.rows[0];
-        return successResponse(res, "Admin profile updated successfully", {
-            userData: {
-                id: updatedAdmin.id,
-                name: updatedAdmin.name,
-                email: updatedAdmin.email,
-                role: "admin",
-                created_at: updatedAdmin.created_at
-            }
-        });
-    } catch (error) {
-        console.error("[UpdateAdminProfile] Error:", error);
-        if (error.code === '23505') {
-            if (error.detail.includes('email')) return errorResponse(res, "Email already in use");
-        }
-        return errorResponse(res, "Server error", 500);
-    }
-};
-
-// Change Admin Password
-export const changeAdminPassword = async (req, res) => {
-    try {
-        const adminId = req.user.id;
-        const { old_password, new_password } = req.body;
-
-        if (!old_password || !new_password) {
-            return errorResponse(res, "Old password and new password are required");
-        }
-
-        const result = await pool.query("SELECT password FROM admins WHERE id = $1", [adminId]);
-        if (result.rows.length === 0) return errorResponse(res, "Admin not found");
-
-        const admin = result.rows[0];
-        const isMatch = await bcrypt.compare(old_password, admin.password);
-
-        if (!isMatch) {
-            return errorResponse(res, "Incorrect old password");
-        }
-
-        const salt = await bcrypt.genSalt(10);
-        const newHash = await bcrypt.hash(new_password, salt);
-
-        await pool.query("UPDATE admins SET password = $1 WHERE id = $2", [newHash, adminId]);
-
-        return successResponse(res, "Password changed successfully");
-    } catch (error) {
-        console.error("[ChangeAdminPassword] Error:", error);
-        return errorResponse(res, "Server error", 500);
-    }
-};
 
 // Get List of Uploaded Files
 export const getUploadedFiles = async (req, res) => {

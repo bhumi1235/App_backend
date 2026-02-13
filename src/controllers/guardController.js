@@ -396,7 +396,6 @@ export const getGuardById = async (req, res) => {
             fullName: guard.name,  // Frontend expects fullName
             phone: guard.phone,
             email: guard.email,
-            dateOfBirth: null,  // Not in current schema
             address: guard.current_address,  // Frontend expects address
             emergencyContact: contacts[0]?.phone || null,  // Frontend expects single emergencyContact
             assignedArea: guard.working_location,  // Frontend expects assignedArea
