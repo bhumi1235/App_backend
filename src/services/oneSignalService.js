@@ -4,6 +4,11 @@ export const sendPushNotification = async (playerIds, title, message, data = {})
     const ONESIGNAL_APP_ID = process.env.ONESIGNAL_APP_ID;
     const ONESIGNAL_API_KEY = process.env.ONESIGNAL_API_KEY;
 
+    // DEBUG LOGS
+    console.log(`[OneSignal] Init - APP_ID present: ${!!ONESIGNAL_APP_ID}`);
+    console.log(`[OneSignal] Init - API_KEY present: ${!!ONESIGNAL_API_KEY}`);
+    if (ONESIGNAL_APP_ID) console.log(`[OneSignal] APP_ID Start: ${ONESIGNAL_APP_ID.substring(0, 5)}...`);
+
     return new Promise((resolve, reject) => {
         if (!ONESIGNAL_APP_ID || !ONESIGNAL_API_KEY) {
             console.warn("OneSignal App ID or API Key is missing. Notification skipped.");
