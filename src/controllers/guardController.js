@@ -130,6 +130,7 @@ export const addGuard = async (req, res) => {
         }
 
         // Create Notification linked to Supervisor with Local unique ID
+        let notificationResult = null;
         if (supervisor_id) {
             const maxNotifId = await client.query(
                 "SELECT MAX(local_notification_id) as max_id FROM notifications WHERE supervisor_id = $1",
@@ -141,26 +142,25 @@ export const addGuard = async (req, res) => {
                 "INSERT INTO notifications (type, message, supervisor_id, local_notification_id) VALUES ($1, $2, $3, $4)",
                 ["GUARD_ADDED", `New guard added: ${name}`, supervisor_id, local_notification_id]
             );
-        }
 
-        // Fetch Supervisor Name (Logged-in User)
-        let supervisorName = "Unknown";
-        if (req.user && req.user.id) {
-            const supervisorResult = await client.query("SELECT name FROM employees WHERE id = $1", [req.user.id]);
+            // Fetch Supervisor Name if not already available
+            let supervisorName = "Unknown";
+            const supervisorResult = await client.query("SELECT name FROM employees WHERE id = $1", [supervisor_id]);
             if (supervisorResult.rows.length > 0) {
                 supervisorName = supervisorResult.rows[0].name;
             }
-        }
 
-        // Notify Admins
-        await notifyAdmins("Guard Added", `Supervisor ${supervisorName} added a new guard: ${name}`);
+            // Notify Admins
+            await notifyAdmins("Guard Added", `Supervisor ${supervisorName} added a new guard: ${name}`);
 
-        // Notify Supervisor
-        if (supervisor_id) {
+            // Notify Supervisor via Push
             const supervisorEmp = await client.query("SELECT player_id FROM employees WHERE id = $1", [supervisor_id]);
             if (supervisorEmp.rows.length > 0 && supervisorEmp.rows[0].player_id) {
-                await sendPushNotification([supervisorEmp.rows[0].player_id], "Guard Added", `You successfully added guard: ${name}`);
+                notificationResult = await sendPushNotification([supervisorEmp.rows[0].player_id], "Guard Added", `You successfully added guard: ${name}`);
             }
+        } else {
+            // Notify Admins only (if admin added it)
+            await notifyAdmins("Guard Added", `Admin added a new guard: ${name}`);
         }
 
         // Fetch Duty Type Name
@@ -173,7 +173,7 @@ export const addGuard = async (req, res) => {
             guardData: {
                 guardID: formatGuardId(localGuardId || guardId),
                 supervisorID: req.user ? formatSupervisorId(req.user.id) : null,
-                supervisorName,
+                supervisorName: req.user?.name || "Admin",
                 name,
                 phone,
                 email,
@@ -257,14 +257,15 @@ export const deleteGuard = async (req, res) => {
         await pool.query("DELETE FROM guards WHERE id = $1", [guard.id]);
 
         // Notify Supervisor
+        let notificationResult = null;
         if (supervisor_id) {
             const supervisorEmp = await pool.query("SELECT player_id FROM employees WHERE id = $1", [supervisor_id]);
             if (supervisorEmp.rows.length > 0 && supervisorEmp.rows[0].player_id) {
-                await sendPushNotification([supervisorEmp.rows[0].player_id], "Guard Deleted", `You successfully deleted guard: ${guard.name}`);
+                notificationResult = await sendPushNotification([supervisorEmp.rows[0].player_id], "Guard Deleted", `You successfully deleted guard: ${guard.name}`);
             }
         }
 
-        return successResponse(res, "Guard deleted successfully");
+        return successResponse(res, "Guard deleted successfully", { notificationResult });
 
     } catch (error) {
         console.error("[deleteGuard] Error:", error);
