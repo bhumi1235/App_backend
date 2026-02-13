@@ -15,15 +15,16 @@ function checkFileType(file, cb) {
     if (mimetype && extname) {
         return cb(null, true);
     } else {
-        cb("Error: Images and Documents Only!");
+        cb(new Error("Error: Images and Documents Only!"));
     }
 }
 
 // Determine storage based on environment
 const getStorage = () => {
     const isProduction = process.env.NODE_ENV === 'production';
+    const hasCloudinary = process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET;
 
-    if (isProduction) {
+    if (isProduction && hasCloudinary) {
         // Use Cloudinary in production
         console.log('[Upload Middleware] Using Cloudinary storage');
         return new CloudinaryStorage({

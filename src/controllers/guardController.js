@@ -1,6 +1,7 @@
 import pool from "../config/db.js";
 import { successResponse, errorResponse } from "../utils/responseHandler.js";
 import { sendPushNotification } from "../services/oneSignalService.js";
+import { getFileUrl } from "../utils/fileUtils.js";
 
 // Helper to format Supervisor ID
 const formatSupervisorId = (id) => `SPR${String(id).padStart(3, '0')}`;
@@ -55,9 +56,9 @@ export const addGuard = async (req, res) => {
         let profile_photo = null;
         if (req.files) {
             if (req.files["profileimage"]) {
-                profile_photo = req.files["profileimage"][0].filename;
+                profile_photo = req.files["profileimage"][0].path || req.files["profileimage"][0].filename;
             } else if (req.files["profile_photo"]) {
-                profile_photo = req.files["profile_photo"][0].filename;
+                profile_photo = req.files["profile_photo"][0].path || req.files["profile_photo"][0].filename;
             }
         }
 
@@ -124,12 +125,13 @@ export const addGuard = async (req, res) => {
         const uploadedDocuments = [];
         if (req.files && req.files["documents"]) {
             for (const file of req.files["documents"]) {
+                const filePath = file.path || file.filename;
                 await client.query(
                     "INSERT INTO documents (guard_id, file_path, original_name) VALUES ($1, $2, $3)",
-                    [guardId, file.filename, file.originalname]
+                    [guardId, filePath, file.originalname]
                 );
                 uploadedDocuments.push({
-                    file_path: file.filename,
+                    file_path: filePath,
                     original_name: file.originalname
                 });
             }
@@ -179,7 +181,7 @@ export const addGuard = async (req, res) => {
                 name,
                 phone,
                 email,
-                profile_photo: profile_photo ? `/uploads/${profile_photo}` : null,
+                profile_photo: getFileUrl(profile_photo),
                 current_address,
                 permanent_address,
                 date_of_joining: new Date(), // Approximate for immediate response
@@ -314,7 +316,7 @@ export const getAllGuards = async (req, res) => {
             assignedArea: guard.working_location,  // Frontend expects assignedArea
             supervisorId: guard.supervisor_id,  // Frontend expects supervisorId
             status: 'Active',  // Default status
-            profileImage: guard.profile_photo,
+            profileImage: getFileUrl(guard.profile_photo),
             dutyType: guard.duty_type_name,
             dateOfJoining: guard.created_at
         }));
@@ -382,7 +384,7 @@ export const getGuardById = async (req, res) => {
         );
         const documents = documentsResult.rows.map(doc => ({
             original_name: doc.original_name,
-            file_path: `/uploads/${doc.file_path}` // Prefix with /uploads/
+            file_path: getFileUrl(doc.file_path)
         }));
 
         // Format response to match frontend expectations
@@ -397,7 +399,7 @@ export const getGuardById = async (req, res) => {
             assignedArea: guard.working_location,  // Frontend expects assignedArea
             supervisorId: guard.supervisor_id,  // Frontend expects supervisorId
             status: 'Active',  // Default status
-            profileImage: guard.profile_photo,
+            profileImage: getFileUrl(guard.profile_photo),
             dutyType: guard.duty_type_name,
             dateOfJoining: guard.created_at,
             // Additional fields for detailed view
@@ -500,11 +502,11 @@ export const editGuard = async (req, res) => {
 
         if (req.files) {
             if (req.files["profile_photo"]) {
-                addField("profile_photo", req.files["profile_photo"][0].filename);
+                addField("profile_photo", req.files["profile_photo"][0].path || req.files["profile_photo"][0].filename);
             } else if (req.files["profileimage"]) {
-                addField("profile_photo", req.files["profileimage"][0].filename);
+                addField("profile_photo", req.files["profileimage"][0].path || req.files["profileimage"][0].filename);
             } else if (req.files["profileImage"]) {
-                addField("profile_photo", req.files["profileImage"][0].filename);
+                addField("profile_photo", req.files["profileImage"][0].path || req.files["profileImage"][0].filename);
             }
         }
 
@@ -537,9 +539,10 @@ export const editGuard = async (req, res) => {
         // Documents (Append new documents)
         if (req.files && req.files["documents"]) {
             for (const file of req.files["documents"]) {
+                const filePath = file.path || file.filename;
                 await client.query(
                     "INSERT INTO documents (guard_id, file_path, original_name) VALUES ($1, $2, $3)",
-                    [realGuardId, file.filename, file.originalname]
+                    [realGuardId, filePath, file.originalname]
                 );
             }
         }
@@ -596,12 +599,13 @@ export const uploadGuardDocuments = async (req, res) => {
 
         const uploadedDocuments = [];
         for (const file of req.files) {
+            const filePath = file.path || file.filename;
             await pool.query(
                 "INSERT INTO documents (guard_id, file_path, original_name) VALUES ($1, $2, $3)",
-                [realGuardId, file.filename, file.originalname]
+                [realGuardId, filePath, file.originalname]
             );
             uploadedDocuments.push({
-                file_path: file.filename,
+                file_path: filePath,
                 original_name: file.originalname
             });
         }
