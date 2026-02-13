@@ -17,8 +17,9 @@ const parseGuardId = (id) => {
 
 // Add a new guard
 export const addGuard = async (req, res) => {
-    const client = await pool.connect();
+    let client;
     try {
+        client = await pool.connect();
         await client.query("BEGIN");
 
         const {
@@ -199,7 +200,7 @@ export const addGuard = async (req, res) => {
         }, 201); // 201 Created
 
     } catch (error) {
-        await client.query("ROLLBACK");
+        if (client) await client.query("ROLLBACK");
         console.error("addGuard ERROR:", error);
         if (error.code === '23505') {
             return errorResponse(res, "Phone number already exists for another guard", 400);
@@ -209,7 +210,7 @@ export const addGuard = async (req, res) => {
         }
         return errorResponse(res, "Server error: " + error.message, 500);
     } finally {
-        client.release();
+        if (client) client.release();
     }
 };
 
