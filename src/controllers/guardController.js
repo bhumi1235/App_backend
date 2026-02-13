@@ -214,22 +214,32 @@ export const addGuard = async (req, res) => {
 // Delete Guard
 export const deleteGuard = async (req, res) => {
     try {
-        const { id } = req.params; // Gxxx or local_guard_id
+        const { id } = req.params; // Can be database ID or Gxxx format
         const supervisor_id = req.user ? req.user.id : null;
-        const local_id = parseGuardId(id);
-
-        if (!local_id) return errorResponse(res, "Invalid Guard ID format");
 
         if (!supervisor_id && req.user?.role !== 'admin') {
             return errorResponse(res, "Unauthorized", 401);
         }
 
-        // Find the guard
-        let guardQuery = `SELECT id, name, supervisor_id FROM guards WHERE local_guard_id = $1`;
-        let queryParams = [local_id];
+        // Try to parse as formatted ID (Gxxx), otherwise use as database ID
+        const local_id = parseGuardId(id);
+        let guardQuery;
+        let queryParams;
 
+        // Check if it's a formatted ID (has 'G' prefix) or direct database ID
+        if (id.toString().match(/^G/i)) {
+            // Formatted ID like "G1" - search by local_guard_id
+            guardQuery = `SELECT id, name, supervisor_id FROM guards WHERE local_guard_id = $1`;
+            queryParams = [local_id];
+        } else {
+            // Direct database ID - search by id
+            guardQuery = `SELECT id, name, supervisor_id FROM guards WHERE id = $1`;
+            queryParams = [parseInt(id, 10)];
+        }
+
+        // Add supervisor check for non-admin users
         if (req.user?.role !== 'admin') {
-            guardQuery += ` AND supervisor_id = $2`;
+            guardQuery += ` AND supervisor_id = $${queryParams.length + 1}`;
             queryParams.push(supervisor_id);
         }
 
