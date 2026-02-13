@@ -150,17 +150,11 @@ export const addGuard = async (req, res) => {
                 supervisorName = supervisorResult.rows[0].name;
             }
 
-            // Notify Admins
-            await notifyAdmins("Guard Added", `Supervisor ${supervisorName} added a new guard: ${name}`);
-
             // Notify Supervisor via Push
             const supervisorEmp = await client.query("SELECT player_id FROM employees WHERE id = $1", [supervisor_id]);
             if (supervisorEmp.rows.length > 0 && supervisorEmp.rows[0].player_id) {
                 notificationResult = await sendPushNotification([supervisorEmp.rows[0].player_id], "Guard Added", `You successfully added guard: ${name}`);
             }
-        } else {
-            // Notify Admins only (if admin added it)
-            await notifyAdmins("Guard Added", `Admin added a new guard: ${name}`);
         }
 
         // Fetch Duty Type Name
@@ -193,7 +187,8 @@ export const addGuard = async (req, res) => {
                 emergency_contact_phone_2,
                 emergency_address,
                 documents: uploadedDocuments
-            }
+            },
+            notificationResult: notificationResult
         }, 201); // 201 Created
 
     } catch (error) {
@@ -281,9 +276,9 @@ export const getAllGuards = async (req, res) => {
         const isAdmin = req.user?.role === 'admin';
 
         let query = `
-            SELECT g.*, dt.name as duty_type_name 
-            FROM guards g 
-            LEFT JOIN duty_types dt ON g.duty_type_id = dt.id`;
+        SELECT g.*, dt.name as duty_type_name 
+        FROM guards g 
+        LEFT JOIN duty_types dt ON g.duty_type_id = dt.id`;
 
         let params = [];
 
@@ -350,11 +345,11 @@ export const getGuardById = async (req, res) => {
     try {
         // Admin can see any guard. Supervisor can only see own.
         let guardQuery = `
-            SELECT g.*, dt.name as duty_type_name 
-            FROM guards g 
-            LEFT JOIN duty_types dt ON g.duty_type_id = dt.id
-            WHERE g.id = $1
-        `;
+        SELECT g.*, dt.name as duty_type_name 
+        FROM guards g 
+        LEFT JOIN duty_types dt ON g.duty_type_id = dt.id
+        WHERE g.id = $1
+    `;
         const queryParams = [id];
 
         if (req.user?.role !== 'admin') {
