@@ -509,7 +509,7 @@ export const getUploadedFiles = async (req, res) => {
 
             return {
                 filename,
-                url: `/uploads/${filename}`,
+                url: getFileUrl(filename),
                 size: stats.size,
                 sizeKB: (stats.size / 1024).toFixed(2),
                 created: stats.birthtime,

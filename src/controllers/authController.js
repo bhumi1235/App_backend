@@ -3,6 +3,7 @@ import pool from "../config/db.js";
 import { generateToken } from "../utils/jwtUtils.js";
 import { successResponse, errorResponse } from "../utils/responseHandler.js";
 import { sendPushNotification } from "../services/oneSignalService.js";
+import { getFileUrl } from "../utils/fileUtils.js";
 
 // Helper to format Supervisor ID
 const formatSupervisorId = (id) => `SPR${String(id).padStart(3, '0')}`;
@@ -22,9 +23,11 @@ export const signup = async (req, res, next) => {
 
         if (req.files) {
             if (req.files["profile_photo"]) {
-                profile_photo = req.files["profile_photo"][0].filename;
+                const file = req.files["profile_photo"][0];
+                profile_photo = file.path || file.filename;
             } else if (req.files["profileimage"]) {
-                profile_photo = req.files["profileimage"][0].filename;
+                const file = req.files["profileimage"][0];
+                profile_photo = file.path || file.filename;
             }
         }
 
@@ -59,7 +62,7 @@ export const signup = async (req, res, next) => {
             player_id: newEmployee.player_id,
             device_type: newEmployee.device_type,
             role: "supervisor",
-            profileImage: newEmployee.profile_photo ? `/uploads/${newEmployee.profile_photo}` : null // New user has no profile image
+            profileImage: getFileUrl(newEmployee.profile_photo) // Cloudinary URL or local uploads URL
         };
 
         return successResponse(res, "Account created successfully.", {
@@ -117,7 +120,7 @@ export const login = async (req, res, next) => {
             player_id: player_id || employee.player_id,
             device_type: device_type || employee.device_type,
             role: "supervisor",
-            profileImage: employee.profile_photo ? `/uploads/${employee.profile_photo}` : null // Add profile image
+            profileImage: getFileUrl(employee.profile_photo) // Cloudinary URL or local uploads URL
         };
 
         return successResponse(res, "Login successfully", {
@@ -312,7 +315,7 @@ export const editProfile = async (req, res, next) => {
             name: updatedUser.name,
             phone: updatedUser.phone,
             email: updatedUser.email,
-            profileImage: updatedUser.profile_photo ? `/uploads/${updatedUser.profile_photo}` : null
+            profileImage: getFileUrl(updatedUser.profile_photo)
         };
 
         // Notify Supervisor
