@@ -272,9 +272,11 @@ export const editProfile = async (req, res, next) => {
 
         if (req.files) {
             if (req.files["profile_photo"]) {
-                profile_photo = req.files["profile_photo"][0].filename;
+                const file = req.files["profile_photo"][0];
+                profile_photo = file.path || file.filename;
             } else if (req.files["profileimage"]) {
-                profile_photo = req.files["profileimage"][0].filename;
+                const file = req.files["profileimage"][0];
+                profile_photo = file.path || file.filename;
             }
         }
 

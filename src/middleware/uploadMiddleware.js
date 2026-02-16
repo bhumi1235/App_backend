@@ -21,23 +21,25 @@ function checkFileType(file, cb) {
 
 // Determine storage based on environment
 const getStorage = () => {
-    const isProduction = process.env.NODE_ENV === 'production';
-    const hasCloudinary = process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET;
+    const hasCloudinary =
+        process.env.CLOUDINARY_CLOUD_NAME &&
+        process.env.CLOUDINARY_API_KEY &&
+        process.env.CLOUDINARY_API_SECRET;
 
-    if (isProduction && hasCloudinary) {
-        // Use Cloudinary in production
-        console.log('[Upload Middleware] Using Cloudinary storage');
+    if (hasCloudinary) {
+        // Prefer Cloudinary whenever credentials are configured
+        console.log("[Upload Middleware] Using Cloudinary storage");
         return new CloudinaryStorage({
             cloudinary: cloudinary,
             params: {
-                folder: 'smart-rangers',
-                allowed_formats: ['jpeg', 'jpg', 'png', 'gif', 'pdf', 'doc', 'docx'],
-                transformation: [{ width: 500, height: 500, crop: 'limit' }]
-            }
+                folder: "smart-rangers",
+                allowed_formats: ["jpeg", "jpg", "png", "gif", "pdf", "doc", "docx"],
+                transformation: [{ width: 500, height: 500, crop: "limit" }],
+            },
         });
     } else {
-        // Use local storage in development
-        console.log('[Upload Middleware] Using local storage');
+        // Fallback: local storage
+        console.log("[Upload Middleware] Using local storage");
         return multer.diskStorage({
             destination: "./uploads/",
             filename: function (req, file, cb) {
