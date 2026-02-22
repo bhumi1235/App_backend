@@ -53,13 +53,33 @@ export const login = async (req, res) => {
 // Get Dashboard Stats
 export const getDashboardStats = async (req, res) => {
     try {
-        const totalGuards = await pool.query("SELECT COUNT(*) FROM guards");
-        const totalSupervisors = await pool.query("SELECT COUNT(*) FROM employees");
-        const recentGuards = await pool.query("SELECT * FROM guards ORDER BY created_at DESC LIMIT 5");
+        const [totalGuards, totalSupervisors, supervisorCounts, recentGuards] = await Promise.all([
+            pool.query("SELECT COUNT(*) FROM guards"),
+            pool.query("SELECT COUNT(*) FROM employees"),
+            pool.query(
+                "SELECT status, COUNT(*) as count FROM employees GROUP BY status"
+            ),
+            pool.query("SELECT * FROM guards ORDER BY created_at DESC LIMIT 5")
+        ]);
+
+        const statusCounts = (rows) => {
+            const map = { Active: 0, Suspended: 0, Terminated: 0 };
+            rows.forEach(r => { map[r.status] = parseInt(r.count, 10); });
+            return map;
+        };
+        const supervisorByStatus = statusCounts(supervisorCounts.rows);
+        const totalGuardsCount = parseInt(totalGuards.rows[0].count, 10);
+        const guardByStatus = { Active: totalGuardsCount, Suspended: 0, Terminated: 0 };
 
         const stats = {
             totalGuards: parseInt(totalGuards.rows[0].count),
             totalSupervisors: parseInt(totalSupervisors.rows[0].count),
+            totalActiveSupervisors: supervisorByStatus.Active,
+            totalSuspendedSupervisors: supervisorByStatus.Suspended,
+            totalTerminatedSupervisors: supervisorByStatus.Terminated,
+            totalActiveGuards: guardByStatus.Active,
+            totalSuspendedGuards: guardByStatus.Suspended,
+            totalTerminatedGuards: guardByStatus.Terminated,
             recentGuards: recentGuards.rows
         };
 
@@ -156,7 +176,7 @@ export const getSupervisorById = async (req, res) => {
     try {
         const { id } = req.params;
         const result = await pool.query(
-            "SELECT id, name, email, phone, created_at, status FROM employees WHERE id = $1",
+            "SELECT id, name, email, phone, created_at, status, profile_photo, termination_reason FROM employees WHERE id = $1",
             [id]
         );
 
@@ -167,11 +187,13 @@ export const getSupervisorById = async (req, res) => {
         const s = result.rows[0];
         const supervisorDetails = {
             id: s.id,
-            fullName: s.name,      // Map name -> fullName
+            fullName: s.name,
             email: s.email,
             phone: s.phone,
             status: s.status,
-            createdDate: s.created_at // Map created_at -> createdDate
+            createdDate: s.created_at,
+            profileImage: getFileUrl(s.profile_photo),
+            terminationReason: s.termination_reason || null
         };
 
         return res.status(200).json({
@@ -417,6 +439,46 @@ export const deleteSupervisor = async (req, res) => {
         });
     } catch (error) {
         console.error("[DeleteSupervisor] Error:", error);
+        return errorResponse(res, "Server error", 500);
+    }
+};
+
+// Permanently delete a terminated supervisor (only when status is Terminated)
+export const permanentDeleteSupervisor = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const check = await pool.query(
+            "SELECT id, name, status FROM employees WHERE id = $1",
+            [id]
+        );
+        if (check.rows.length === 0) {
+            return errorResponse(res, "Supervisor not found", 404);
+        }
+        if (check.rows[0].status !== "Terminated") {
+            return errorResponse(res, "Only terminated supervisors can be permanently deleted", 400);
+        }
+        await pool.query("DELETE FROM employees WHERE id = $1", [id]);
+        console.log(`[PermanentDeleteSupervisor] Permanently deleted supervisor ${id} (${check.rows[0].name})`);
+        return successResponse(res, "Supervisor permanently deleted", { id: parseInt(id, 10) });
+    } catch (error) {
+        console.error("[PermanentDeleteSupervisor] Error:", error);
+        return errorResponse(res, "Server error", 500);
+    }
+};
+
+// Permanently delete a guard (admin only; cascade deletes contacts & documents)
+export const permanentDeleteGuard = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const check = await pool.query("SELECT id, name FROM guards WHERE id = $1", [id]);
+        if (check.rows.length === 0) {
+            return errorResponse(res, "Guard not found", 404);
+        }
+        await pool.query("DELETE FROM guards WHERE id = $1", [id]);
+        console.log(`[PermanentDeleteGuard] Permanently deleted guard ${id} (${check.rows[0].name})`);
+        return successResponse(res, "Guard permanently deleted", { id: parseInt(id, 10) });
+    } catch (error) {
+        console.error("[PermanentDeleteGuard] Error:", error);
         return errorResponse(res, "Server error", 500);
     }
 };

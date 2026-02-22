@@ -1,5 +1,6 @@
 import express from "express";
-import { getDashboardStats, getAllSupervisors, getSupervisorById, getSupervisorGuards, createSupervisor, updateSupervisorStatus, updateSupervisor, deleteSupervisor, updateTerminationReason, createAdmin, login, listAdmins, getAdminProfile, getUploadedFiles } from "../controllers/adminController.js";
+import { getDashboardStats, getAllSupervisors, getSupervisorById, getSupervisorGuards, createSupervisor, updateSupervisorStatus, updateSupervisor, deleteSupervisor, permanentDeleteSupervisor, permanentDeleteGuard, updateTerminationReason, createAdmin, login, listAdmins, getAdminProfile, getUploadedFiles } from "../controllers/adminController.js";
+import { exportSupervisorPdf, exportSupervisorExcel, exportGuardPdf, exportGuardExcel } from "../controllers/exportController.js";
 import authenticateAdmin from "../middleware/adminAuthMiddleware.js";
 import upload from "../middleware/uploadMiddleware.js";
 import { validateUpdateSupervisor } from "../middleware/validationMiddleware.js";
@@ -17,10 +18,17 @@ router.get("/supervisors", getAllSupervisors);
 router.post("/supervisors", upload.fields([{ name: "profile_photo", maxCount: 1 }, { name: "profileimage", maxCount: 1 }]), createSupervisor);
 router.get("/supervisors/:id", getSupervisorById);
 router.get("/supervisors/:id/guards", getSupervisorGuards);
+router.get("/supervisors/:id/export/pdf", exportSupervisorPdf);
+router.get("/supervisors/:id/export/excel", exportSupervisorExcel);
 router.put("/supervisors/:id", upload.single("profile_photo"), validateUpdateSupervisor, updateSupervisor);
 router.put("/supervisors/:id/status", updateSupervisorStatus);
 router.delete("/supervisors/:id", deleteSupervisor);
+router.delete("/supervisors/:id/permanent", permanentDeleteSupervisor);
 router.put("/supervisors/:id/termination-reason", updateTerminationReason);
+
+router.delete("/guards/:id/permanent", permanentDeleteGuard);
+router.get("/guards/:id/export/pdf", exportGuardPdf);
+router.get("/guards/:id/export/excel", exportGuardExcel);
 
 // Admin Profile Management
 router.get("/profile", getAdminProfile);

@@ -16,6 +16,8 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use("/uploads", express.static("uploads"));
+// Admin app logo: place logo at public/logo.png and use /logo.png or set env APP_LOGO_URL
+app.use(express.static("public"));
 
 app.get("/", (req, res) => {
     res.send("API is running...");
