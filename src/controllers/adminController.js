@@ -70,7 +70,15 @@ export const getDashboardStats = async (req, res) => {
 
         const statusCounts = (rows) => {
             const map = { Active: 0, Suspended: 0, Terminated: 0 };
-            rows.forEach(r => { map[r.status] = parseInt(r.count, 10); });
+            rows.forEach(r => {
+                let status = r.status;
+                if (status === true || status === 'true' || !status) status = 'Active';
+                if (status === false || status === 'false') status = 'Suspended';
+
+                if (map.hasOwnProperty(status)) {
+                    map[status] += parseInt(r.count, 10);
+                }
+            });
             return map;
         };
         const supervisorByStatus = statusCounts(supervisorCounts.rows);
@@ -220,17 +228,26 @@ export const getSupervisorGuards = async (req, res) => {
 
         // Query guards for this supervisor
         const result = await pool.query(
-            "SELECT id, name, phone, working_location, 'Active' as status FROM guards WHERE supervisor_id = $1 ORDER BY created_at DESC",
+            "SELECT id, name, phone, working_location, status FROM guards WHERE supervisor_id = $1 ORDER BY created_at DESC",
             [id]
         );
 
-        const formattedGuards = result.rows.map(g => ({
-            id: g.id,
-            fullName: g.name,           // Map name -> fullName
-            phone: g.phone,
-            assignedArea: g.working_location, // Map working_location -> assignedArea
-            status: g.status
-        }));
+        const formattedGuards = result.rows.map(g => {
+            let normalizedStatus = g.status;
+            if (g.status === true || g.status === 'true' || !g.status) {
+                normalizedStatus = 'Active';
+            } else if (g.status === false || g.status === 'false') {
+                normalizedStatus = 'Suspended';
+            }
+
+            return {
+                id: g.id,
+                fullName: g.name,           // Map name -> fullName
+                phone: g.phone,
+                assignedArea: g.working_location, // Map working_location -> assignedArea
+                status: normalizedStatus
+            };
+        });
 
         return res.status(200).json({
             success: true,
