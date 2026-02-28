@@ -83,8 +83,8 @@ export const addGuard = async (req, res) => {
             `INSERT INTO guards (
             name, profile_photo, phone, email, current_address, permanent_address, emergency_address,
             duty_type_id, duty_start_time, duty_end_time, working_location, work_experience, reference_by,
-            supervisor_id, local_guard_id
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING id, local_guard_id`,
+            supervisor_id, local_guard_id, status
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, 'Active') RETURNING id, local_guard_id, status`,
             [
                 name || null,
                 profile_photo || null,
@@ -106,6 +106,7 @@ export const addGuard = async (req, res) => {
 
         const guardId = guardResult.rows[0].id;
         const localGuardId = guardResult.rows[0].local_guard_id;
+        const guardStatus = guardResult.rows[0].status;
 
         // Insert Emergency Contacts
         if (emergency_contact_name_1 && emergency_contact_phone_1) {
@@ -196,6 +197,7 @@ export const addGuard = async (req, res) => {
                 emergency_contact_name_2,
                 emergency_contact_phone_2,
                 emergency_address,
+                status: guardStatus,
                 documents: uploadedDocuments
             },
             notificationResult: notificationResult
@@ -250,10 +252,10 @@ export const deleteGuard = async (req, res) => {
             supervisorName = req.user.name || "Unknown";
         }
 
-        // Delete dependencies
-        await pool.query("DELETE FROM emergency_contacts WHERE guard_id = $1", [guard.id]);
-        await pool.query("DELETE FROM documents WHERE guard_id = $1", [guard.id]);
-        await pool.query("DELETE FROM guards WHERE id = $1", [guard.id]);
+        // Soft delete: Set status to 'Terminated' and optionally store reason if provided in req.body.reason
+        // (If simple delete button is pressed, reason might be null, but status becomes Terminated)
+        const reason = req.body.reason || "Terminated by supervisor";
+        await pool.query("UPDATE guards SET status = 'Terminated', termination_reason = $1 WHERE id = $2", [reason, guard.id]);
 
         // Notify Supervisor
         let notificationResult = null;
@@ -315,7 +317,8 @@ export const getAllGuards = async (req, res) => {
             email: guard.email,
             assignedArea: guard.working_location,  // Frontend expects assignedArea
             supervisorId: guard.supervisor_id,  // Frontend expects supervisorId
-            status: 'Active',  // Default status
+            status: guard.status,
+            terminationReason: guard.termination_reason || null,
             profileImage: getFileUrl(guard.profile_photo),
             dutyType: guard.duty_type_name,
             dateOfJoining: guard.created_at
@@ -398,7 +401,8 @@ export const getGuardById = async (req, res) => {
             emergencyContact: contacts[0]?.phone || null,  // Frontend expects single emergencyContact
             assignedArea: guard.working_location,  // Frontend expects assignedArea
             supervisorId: guard.supervisor_id,  // Frontend expects supervisorId
-            status: 'Active',  // Default status
+            status: guard.status,
+            terminationReason: guard.termination_reason || null,
             profileImage: getFileUrl(guard.profile_photo),
             dutyType: guard.duty_type_name,
             dateOfJoining: guard.created_at,
