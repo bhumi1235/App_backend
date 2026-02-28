@@ -75,6 +75,7 @@ export const validateChangePassword = [
 export const validateAddGuard = [
     body("name").notEmpty().withMessage("Name is required"),
     body("phone").matches(/^[0-9]{10,15}$/).withMessage("Invalid phone number format"),
-    body("working_location").notEmpty().withMessage("Working location is required"),
+    body("working_location").optional(),
+    body("duty_type_id").optional(),
     handleValidationErrors
 ];

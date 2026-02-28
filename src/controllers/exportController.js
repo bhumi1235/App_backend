@@ -27,6 +27,19 @@ async function getSupervisorData(id) {
     };
 }
 
+async function getSupervisorGuardsData(supervisorId) {
+    const result = await pool.query(
+        "SELECT id, name, phone, working_location FROM guards WHERE supervisor_id = $1 ORDER BY id ASC",
+        [supervisorId]
+    );
+    return result.rows.map(g => ({
+        id: formatGuardId(g.local_guard_id || g.id),
+        name: g.name,
+        phone: g.phone,
+        area: g.working_location
+    }));
+}
+
 async function getGuardData(id) {
     const guardResult = await pool.query(
         `SELECT g.*, dt.name as duty_type_name 
@@ -95,6 +108,33 @@ export const exportSupervisorPdf = async (req, res) => {
         doc.text(`Status: ${data.status || "-"}`);
         doc.text(`Joined: ${data.createdDate ? new Date(data.createdDate).toLocaleDateString() : "-"}`);
         if (data.terminationReason) doc.text(`Termination Reason: ${data.terminationReason}`);
+
+        // Add Guards section
+        const guards = await getSupervisorGuardsData(id);
+        if (guards && guards.length > 0) {
+            doc.moveDown();
+            doc.fontSize(14).text("Assigned Guards", { underline: true });
+            doc.moveDown(0.5);
+            doc.fontSize(10);
+
+            // Header
+            doc.text("ID", 50, doc.y, { continued: true });
+            doc.text("Name", 150, doc.y, { continued: true });
+            doc.text("Phone", 300, doc.y, { continued: true });
+            doc.text("Working Location", 450, doc.y);
+            doc.text("------------------------------------------------------------------------------------------------------------------");
+
+            guards.forEach(g => {
+                doc.text(g.id, 50, doc.y, { continued: true });
+                doc.text(g.name || "-", 150, doc.y, { continued: true });
+                doc.text(g.phone || "-", 300, doc.y, { continued: true });
+                doc.text(g.area || "-", 450, doc.y);
+            });
+        } else {
+            doc.moveDown();
+            doc.fontSize(12).text("No guards assigned to this supervisor.");
+        }
+
         doc.end();
     } catch (error) {
         console.error("[ExportSupervisorPdf] Error:", error);
@@ -121,6 +161,18 @@ export const exportSupervisorExcel = async (req, res) => {
         ]);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Supervisor");
+
+        // Add Guards sheet
+        const guards = await getSupervisorGuardsData(id);
+        if (guards && guards.length > 0) {
+            const wsGuards = XLSX.utils.json_to_sheet(guards.map(g => ({
+                "Guard ID": g.id,
+                "Name": g.name,
+                "Phone": g.phone,
+                "Working Location": g.area
+            })));
+            XLSX.utils.book_append_sheet(wb, wsGuards, "Assigned Guards");
+        }
         const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
 
         res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");

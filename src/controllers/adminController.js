@@ -9,7 +9,8 @@ import { getFileUrl, deleteFile } from "../utils/fileUtils.js";
 // Admin Login
 export const login = async (req, res) => {
     try {
-        const { email, password, player_id } = req.body;
+        let { email, password, player_id } = req.body;
+        email = email.trim().toLowerCase();
         console.log(`[Admin Login] Attempt for email: ${email}`);
 
         const result = await pool.query("SELECT * FROM admins WHERE email = $1", [email]);
@@ -145,7 +146,8 @@ export const listAdmins = async (req, res) => {
 // Create a new Admin
 export const createAdmin = async (req, res) => {
     try {
-        const { name, phone, email, password } = req.body;
+        let { name, phone, email, password } = req.body;
+        email = email.trim().toLowerCase();
         console.log(`[Create Admin] Request for: ${email}`);
 
         // Basic duplicate check
