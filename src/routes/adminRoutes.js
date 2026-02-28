@@ -1,5 +1,6 @@
 import express from "express";
 import { getDashboardStats, getAllSupervisors, getSupervisorById, getSupervisorGuards, createSupervisor, updateSupervisorStatus, updateSupervisor, deleteSupervisor, permanentDeleteSupervisor, permanentDeleteGuard, updateTerminationReason, createAdmin, login, listAdmins, getAdminProfile, getUploadedFiles, updateGuardStatus, updateGuardTerminationReason } from "../controllers/adminController.js";
+import { getAllGuards } from "../controllers/guardController.js";
 import { exportSupervisorPdf, exportSupervisorExcel, exportGuardPdf, exportGuardExcel } from "../controllers/exportController.js";
 import authenticateAdmin from "../middleware/adminAuthMiddleware.js";
 import upload from "../middleware/uploadMiddleware.js";
@@ -15,6 +16,7 @@ router.use(authenticateAdmin);
 
 router.get("/dashboard", getDashboardStats);
 router.get("/supervisors", getAllSupervisors);
+router.get("/guards", getAllGuards);
 router.post("/supervisors", upload.fields([{ name: "profile_photo", maxCount: 1 }, { name: "profileimage", maxCount: 1 }]), createSupervisor);
 router.get("/supervisors/:id", getSupervisorById);
 router.get("/supervisors/:id/guards", getSupervisorGuards);
