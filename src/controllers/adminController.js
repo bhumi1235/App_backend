@@ -71,12 +71,8 @@ export const getDashboardStats = async (req, res) => {
         const statusCounts = (rows) => {
             const map = { Active: 0, Suspended: 0, Terminated: 0 };
             rows.forEach(r => {
-                let status = r.status;
-                if (status === true || status === 'true' || !status) status = 'Active';
-                if (status === false || status === 'false') status = 'Suspended';
-
-                if (map.hasOwnProperty(status)) {
-                    map[status] += parseInt(r.count, 10);
+                if (map.hasOwnProperty(r.status)) {
+                    map[r.status] = parseInt(r.count, 10);
                 }
             });
             return map;
@@ -232,22 +228,13 @@ export const getSupervisorGuards = async (req, res) => {
             [id]
         );
 
-        const formattedGuards = result.rows.map(g => {
-            let normalizedStatus = g.status;
-            if (g.status === true || g.status === 'true' || !g.status) {
-                normalizedStatus = 'Active';
-            } else if (g.status === false || g.status === 'false') {
-                normalizedStatus = 'Suspended';
-            }
-
-            return {
-                id: g.id,
-                fullName: g.name,           // Map name -> fullName
-                phone: g.phone,
-                assignedArea: g.working_location, // Map working_location -> assignedArea
-                status: normalizedStatus
-            };
-        });
+        const formattedGuards = result.rows.map(g => ({
+            id: g.id,
+            fullName: g.name,           // Map name -> fullName
+            phone: g.phone,
+            assignedArea: g.working_location, // Map working_location -> assignedArea
+            status: g.status || 'Active'
+        }));
 
         return res.status(200).json({
             success: true,

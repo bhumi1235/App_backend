@@ -309,36 +309,22 @@ export const getAllGuards = async (req, res) => {
         query += " ORDER BY g.created_at DESC";
 
         const result = await pool.query(query, params);
-        console.log(`[getAllGuards] Found ${result.rows.length} records.`);
-        if (result.rows.length > 0) {
-            console.log(`[getAllGuards] First row status: ${result.rows[0].status}, name: ${result.rows[0].name}`);
-        }
 
         // Format for frontend: flat array with specific field names
-        const formattedGuards = result.rows.map(guard => {
-            // Normalize status: handle boolean true/false or null
-            let normalizedStatus = guard.status;
-            if (guard.status === true || guard.status === 'true' || !guard.status) {
-                normalizedStatus = 'Active';
-            } else if (guard.status === false || guard.status === 'false') {
-                normalizedStatus = 'Suspended';
-            }
-
-            return {
-                id: guard.id,
-                guardID: formatGuardId(guard.local_guard_id || guard.id),
-                fullName: guard.name,  // Frontend expects fullName
-                phone: guard.phone,
-                email: guard.email,
-                assignedArea: guard.working_location,  // Frontend expects assignedArea
-                supervisorId: guard.supervisor_id,  // Frontend expects supervisorId
-                status: normalizedStatus,
-                terminationReason: guard.termination_reason || null,
-                profileImage: getFileUrl(guard.profile_photo),
-                dutyType: guard.duty_type_name,
-                dateOfJoining: guard.created_at
-            };
-        });
+        const formattedGuards = result.rows.map(guard => ({
+            id: guard.id,
+            guardID: formatGuardId(guard.local_guard_id || guard.id),
+            fullName: guard.name,  // Frontend expects fullName
+            phone: guard.phone,
+            email: guard.email,
+            assignedArea: guard.working_location,  // Frontend expects assignedArea
+            supervisorId: guard.supervisor_id,  // Frontend expects supervisorId
+            status: guard.status || 'Active',
+            terminationReason: guard.termination_reason || null,
+            profileImage: getFileUrl(guard.profile_photo),
+            dutyType: guard.duty_type_name,
+            dateOfJoining: guard.created_at
+        }));
 
         return res.status(200).json({
             success: true,
