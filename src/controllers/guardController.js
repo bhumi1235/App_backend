@@ -317,7 +317,7 @@ export const getAllGuards = async (req, res) => {
             email: guard.email,
             assignedArea: guard.working_location,  // Frontend expects assignedArea
             supervisorId: guard.supervisor_id,  // Frontend expects supervisorId
-            status: guard.status,
+            status: guard.status || 'Active',
             terminationReason: guard.termination_reason || null,
             profileImage: getFileUrl(guard.profile_photo),
             dutyType: guard.duty_type_name,
@@ -401,7 +401,7 @@ export const getGuardById = async (req, res) => {
             emergencyContact: contacts[0]?.phone || null,  // Frontend expects single emergencyContact
             assignedArea: guard.working_location,  // Frontend expects assignedArea
             supervisorId: guard.supervisor_id,  // Frontend expects supervisorId
-            status: guard.status,
+            status: guard.status || 'Active',
             terminationReason: guard.termination_reason || null,
             profileImage: getFileUrl(guard.profile_photo),
             dutyType: guard.duty_type_name,
