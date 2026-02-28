@@ -1,5 +1,5 @@
 import express from "express";
-import { getDashboardStats, getAllSupervisors, getSupervisorById, getSupervisorGuards, createSupervisor, updateSupervisorStatus, updateSupervisor, deleteSupervisor, permanentDeleteSupervisor, permanentDeleteGuard, updateTerminationReason, createAdmin, login, listAdmins, getAdminProfile, getUploadedFiles, updateGuardStatus, updateGuardTerminationReason } from "../controllers/adminController.js";
+import { getDashboardStats, getAllSupervisors, getSupervisorById, getSupervisorGuards, createSupervisor, updateSupervisorStatus, updateSupervisor, deleteSupervisor, permanentDeleteSupervisor, terminateGuard, permanentDeleteGuard, updateTerminationReason, createAdmin, login, listAdmins, getAdminProfile, getUploadedFiles, updateGuardStatus, updateGuardTerminationReason } from "../controllers/adminController.js";
 import { getAllGuards } from "../controllers/guardController.js";
 import { exportSupervisorPdf, exportSupervisorExcel, exportGuardPdf, exportGuardExcel } from "../controllers/exportController.js";
 import authenticateAdmin from "../middleware/adminAuthMiddleware.js";
@@ -29,6 +29,7 @@ router.delete("/supervisors/:id/permanent", permanentDeleteSupervisor);
 router.put("/supervisors/:id/termination-reason", updateTerminationReason);
 
 router.put("/guards/:id/status", updateGuardStatus);
+router.delete("/guards/:id", terminateGuard);
 router.put("/guards/:id/termination-reason", updateGuardTerminationReason);
 router.delete("/guards/:id/permanent", permanentDeleteGuard);
 router.get("/guards/:id/export/pdf", exportGuardPdf);

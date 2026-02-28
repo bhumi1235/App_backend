@@ -281,6 +281,8 @@ export const getAllGuards = async (req, res) => {
         const supervisor_id = req.user?.id;
         const isAdmin = req.user?.role === 'admin';
 
+        console.log(`[getAllGuards] Request by ${isAdmin ? 'Admin' : 'Supervisor'}. supervisor_id: ${supervisor_id}, search: ${search}`);
+
         let query = `
         SELECT g.*, dt.name as duty_type_name 
         FROM guards g 
@@ -307,6 +309,10 @@ export const getAllGuards = async (req, res) => {
         query += " ORDER BY g.created_at DESC";
 
         const result = await pool.query(query, params);
+        console.log(`[getAllGuards] Found ${result.rows.length} records.`);
+        if (result.rows.length > 0) {
+            console.log(`[getAllGuards] First row status: ${result.rows[0].status}, name: ${result.rows[0].name}`);
+        }
 
         // Format for frontend: flat array with specific field names
         const formattedGuards = result.rows.map(guard => ({

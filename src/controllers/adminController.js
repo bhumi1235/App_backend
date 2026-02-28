@@ -65,6 +65,8 @@ export const getDashboardStats = async (req, res) => {
             ),
             pool.query("SELECT * FROM guards ORDER BY created_at DESC LIMIT 5")
         ]);
+        console.log(`[DashboardStats] totalGuards: ${totalGuards.rows[0].count}, totalSupervisors: ${totalSupervisors.rows[0].count}`);
+        console.log(`[DashboardStats] guardCounts:`, guardCounts.rows);
 
         const statusCounts = (rows) => {
             const map = { Active: 0, Suspended: 0, Terminated: 0 };
@@ -279,9 +281,9 @@ export const updateGuardStatus = async (req, res) => {
         const { id } = req.params;
         const { status } = req.body;
 
-        const validStatuses = ['Active', 'Suspended'];
+        const validStatuses = ['Active', 'Suspended', 'Terminated'];
         if (!status || !validStatuses.includes(status)) {
-            return errorResponse(res, "Invalid status. Must be 'Active' or 'Suspended'", 400);
+            return errorResponse(res, "Invalid status. Must be 'Active', 'Suspended', or 'Terminated'", 400);
         }
 
         const result = await pool.query(
@@ -294,11 +296,36 @@ export const updateGuardStatus = async (req, res) => {
         }
 
         console.log(`[UpdateGuardStatus] Guard ${id} status changed to ${status}`);
-        return successResponse(res, `Guard ${status === 'Active' ? 'activated' : 'suspended'} successfully`, {
+        return successResponse(res, `Guard ${status} successfully`, {
             guard: result.rows[0]
         });
     } catch (error) {
         console.error("[UpdateGuardStatus] Error:", error);
+        return errorResponse(res, "Server error", 500);
+    }
+};
+
+// Terminate Guard (Soft Delete - Admin version)
+export const terminateGuard = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { reason } = req.body;
+
+        const result = await pool.query(
+            "UPDATE guards SET status = 'Terminated', termination_reason = $1 WHERE id = $2 RETURNING id, name, termination_reason",
+            [reason || null, id]
+        );
+
+        if (result.rows.length === 0) {
+            return errorResponse(res, "Guard not found", 404);
+        }
+
+        console.log(`[TerminateGuard] Guard ${id} (${result.rows[0].name}) terminated by Admin. Reason: ${reason || 'Not provided'}`);
+        return successResponse(res, "Guard terminated successfully", {
+            guard: result.rows[0]
+        });
+    } catch (error) {
+        console.error("[TerminateGuard] Error:", error);
         return errorResponse(res, "Server error", 500);
     }
 };
