@@ -290,16 +290,20 @@ export const updateGuardStatus = async (req, res) => {
             return errorResponse(res, "Invalid status. Must be 'Active', 'Suspended', or 'Terminated'", 400);
         }
 
-        const result = await pool.query(
-            "UPDATE guards SET status = $1 WHERE id = $2 RETURNING id, name, status",
-            [status, id]
-        );
+        let query = "UPDATE guards SET status = $1 WHERE id = $2 RETURNING id, name, status, termination_reason";
+        let params = [status, id];
+
+        if (status === 'Active') {
+            query = "UPDATE guards SET status = $1, termination_reason = NULL WHERE id = $2 RETURNING id, name, status, termination_reason";
+        }
+
+        const result = await pool.query(query, params);
 
         if (result.rows.length === 0) {
             return errorResponse(res, "Guard not found", 404);
         }
 
-        console.log(`[UpdateGuardStatus] Guard ${id} status changed to ${status}`);
+        console.log(`[UpdateGuardStatus] Guard ${id} status changed to ${status}${status === 'Active' ? ' (Reason cleared)' : ''}`);
         return successResponse(res, `Guard ${status} successfully`, {
             guard: result.rows[0]
         });
