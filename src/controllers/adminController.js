@@ -54,31 +54,23 @@ export const login = async (req, res) => {
 // Get Dashboard Stats
 export const getDashboardStats = async (req, res) => {
     try {
-        const [totalGuards, totalSupervisors, supervisorCounts, guardCounts, recentGuards] = await Promise.all([
+        const [totalGuards, totalSupervisors, supervisorCounts, recentGuards] = await Promise.all([
             pool.query("SELECT COUNT(*) FROM guards"),
             pool.query("SELECT COUNT(*) FROM employees"),
             pool.query(
                 "SELECT status, COUNT(*) as count FROM employees GROUP BY status"
             ),
-            pool.query(
-                "SELECT status, COUNT(*) as count FROM guards GROUP BY status"
-            ),
             pool.query("SELECT * FROM guards ORDER BY created_at DESC LIMIT 5")
         ]);
-        console.log(`[DashboardStats] totalGuards: ${totalGuards.rows[0].count}, totalSupervisors: ${totalSupervisors.rows[0].count}`);
-        console.log(`[DashboardStats] guardCounts:`, guardCounts.rows);
 
         const statusCounts = (rows) => {
             const map = { Active: 0, Suspended: 0, Terminated: 0 };
-            rows.forEach(r => {
-                if (map.hasOwnProperty(r.status)) {
-                    map[r.status] = parseInt(r.count, 10);
-                }
-            });
+            rows.forEach(r => { map[r.status] = parseInt(r.count, 10); });
             return map;
         };
         const supervisorByStatus = statusCounts(supervisorCounts.rows);
-        const guardByStatus = statusCounts(guardCounts.rows);
+        const totalGuardsCount = parseInt(totalGuards.rows[0].count, 10);
+        const guardByStatus = { Active: totalGuardsCount, Suspended: 0, Terminated: 0 };
 
         const stats = {
             totalGuards: parseInt(totalGuards.rows[0].count),
@@ -224,7 +216,7 @@ export const getSupervisorGuards = async (req, res) => {
 
         // Query guards for this supervisor
         const result = await pool.query(
-            "SELECT id, name, phone, working_location, status FROM guards WHERE supervisor_id = $1 ORDER BY created_at DESC",
+            "SELECT id, name, phone, working_location, 'Active' as status FROM guards WHERE supervisor_id = $1 ORDER BY created_at DESC",
             [id]
         );
 
@@ -233,7 +225,7 @@ export const getSupervisorGuards = async (req, res) => {
             fullName: g.name,           // Map name -> fullName
             phone: g.phone,
             assignedArea: g.working_location, // Map working_location -> assignedArea
-            status: g.status || 'Active'
+            status: g.status
         }));
 
         return res.status(200).json({
@@ -275,65 +267,6 @@ export const updateSupervisorStatus = async (req, res) => {
         });
     } catch (error) {
         console.error("[UpdateSupervisorStatus] Error:", error);
-        return errorResponse(res, "Server error", 500);
-    }
-};
-
-// Update Guard Status (Suspend/Activate)
-export const updateGuardStatus = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { status } = req.body;
-
-        const validStatuses = ['Active', 'Suspended', 'Terminated'];
-        if (!status || !validStatuses.includes(status)) {
-            return errorResponse(res, "Invalid status. Must be 'Active', 'Suspended', or 'Terminated'", 400);
-        }
-
-        let query = "UPDATE guards SET status = $1 WHERE id = $2 RETURNING id, name, status, termination_reason";
-        let params = [status, id];
-
-        if (status === 'Active') {
-            query = "UPDATE guards SET status = $1, termination_reason = NULL WHERE id = $2 RETURNING id, name, status, termination_reason";
-        }
-
-        const result = await pool.query(query, params);
-
-        if (result.rows.length === 0) {
-            return errorResponse(res, "Guard not found", 404);
-        }
-
-        console.log(`[UpdateGuardStatus] Guard ${id} status changed to ${status}${status === 'Active' ? ' (Reason cleared)' : ''}`);
-        return successResponse(res, `Guard ${status} successfully`, {
-            guard: result.rows[0]
-        });
-    } catch (error) {
-        console.error("[UpdateGuardStatus] Error:", error);
-        return errorResponse(res, "Server error", 500);
-    }
-};
-
-// Terminate Guard (Soft Delete - Admin version)
-export const terminateGuard = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { reason } = req.body;
-
-        const result = await pool.query(
-            "UPDATE guards SET status = 'Terminated', termination_reason = $1 WHERE id = $2 RETURNING id, name, termination_reason",
-            [reason || null, id]
-        );
-
-        if (result.rows.length === 0) {
-            return errorResponse(res, "Guard not found", 404);
-        }
-
-        console.log(`[TerminateGuard] Guard ${id} (${result.rows[0].name}) terminated by Admin. Reason: ${reason || 'Not provided'}`);
-        return successResponse(res, "Guard terminated successfully", {
-            guard: result.rows[0]
-        });
-    } catch (error) {
-        console.error("[TerminateGuard] Error:", error);
         return errorResponse(res, "Server error", 500);
     }
 };
@@ -539,12 +472,9 @@ export const permanentDeleteSupervisor = async (req, res) => {
 export const permanentDeleteGuard = async (req, res) => {
     try {
         const { id } = req.params;
-        const check = await pool.query("SELECT id, name, status FROM guards WHERE id = $1", [id]);
+        const check = await pool.query("SELECT id, name FROM guards WHERE id = $1", [id]);
         if (check.rows.length === 0) {
             return errorResponse(res, "Guard not found", 404);
-        }
-        if (check.rows[0].status !== "Terminated") {
-            return errorResponse(res, "Only terminated guards can be permanently deleted", 400);
         }
         await pool.query("DELETE FROM guards WHERE id = $1", [id]);
         console.log(`[PermanentDeleteGuard] Permanently deleted guard ${id} (${check.rows[0].name})`);
@@ -584,39 +514,6 @@ export const updateTerminationReason = async (req, res) => {
         });
     } catch (error) {
         console.error("[UpdateTerminationReason] Error:", error);
-        return errorResponse(res, "Server error", 500);
-    }
-};
-
-// Update Guard Termination Reason
-export const updateGuardTerminationReason = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { reason } = req.body;
-
-        if (!reason) {
-            return errorResponse(res, "Termination reason is required");
-        }
-
-        const result = await pool.query(
-            "UPDATE guards SET termination_reason = $1 WHERE id = $2 AND status = 'Terminated' RETURNING id, name, termination_reason",
-            [reason, id]
-        );
-
-        if (result.rows.length === 0) {
-            return errorResponse(res, "Terminated guard not found", 404);
-        }
-
-        console.log(`[UpdateGuardTerminationReason] Updated reason for guard ${id}: ${reason}`);
-        return successResponse(res, "Guard termination reason updated successfully", {
-            guard: {
-                id: result.rows[0].id,
-                name: result.rows[0].name,
-                termination_reason: result.rows[0].termination_reason
-            }
-        });
-    } catch (error) {
-        console.error("[UpdateGuardTerminationReason] Error:", error);
         return errorResponse(res, "Server error", 500);
     }
 };
@@ -691,6 +588,98 @@ export const getUploadedFiles = async (req, res) => {
         });
     } catch (error) {
         console.error("[GetUploadedFiles] Error:", error);
+        return errorResponse(res, "Server error", 500);
+    }
+};
+
+// Update Guard Status (Suspend/Activate)
+export const updateGuardStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+
+        const validStatuses = ['Active', 'Suspended', 'Terminated'];
+        if (!status || !validStatuses.includes(status)) {
+            return errorResponse(res, "Invalid status. Must be 'Active', 'Suspended', or 'Terminated'", 400);
+        }
+
+        let query = "UPDATE guards SET status = $1 WHERE id = $2 RETURNING id, name, status, termination_reason";
+        let params = [status, id];
+
+        if (status === 'Active') {
+            query = "UPDATE guards SET status = $1, termination_reason = NULL WHERE id = $2 RETURNING id, name, status, termination_reason";
+        }
+
+        const result = await pool.query(query, params);
+
+        if (result.rows.length === 0) {
+            return errorResponse(res, "Guard not found", 404);
+        }
+
+        console.log(`[UpdateGuardStatus] Guard ${id} status changed to ${status}${status === 'Active' ? ' (Reason cleared)' : ''}`);
+        return successResponse(res, `Guard ${status} successfully`, {
+            guard: result.rows[0]
+        });
+    } catch (error) {
+        console.error("[UpdateGuardStatus] Error:", error);
+        return errorResponse(res, "Server error", 500);
+    }
+};
+
+// Terminate Guard (Soft Delete - Admin version)
+export const terminateGuard = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { reason } = req.body;
+
+        const result = await pool.query(
+            "UPDATE guards SET status = 'Terminated', termination_reason = $1 WHERE id = $2 RETURNING id, name, termination_reason",
+            [reason || null, id]
+        );
+
+        if (result.rows.length === 0) {
+            return errorResponse(res, "Guard not found", 404);
+        }
+
+        console.log(`[TerminateGuard] Guard ${id} (${result.rows[0].name}) terminated by Admin. Reason: ${reason || 'Not provided'}`);
+        return successResponse(res, "Guard terminated successfully", {
+            guard: result.rows[0]
+        });
+    } catch (error) {
+        console.error("[TerminateGuard] Error:", error);
+        return errorResponse(res, "Server error", 500);
+    }
+};
+
+// Update Guard Termination Reason
+export const updateGuardTerminationReason = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { reason } = req.body;
+
+        if (!reason) {
+            return errorResponse(res, "Termination reason is required");
+        }
+
+        const result = await pool.query(
+            "UPDATE guards SET termination_reason = $1 WHERE id = $2 AND status = 'Terminated' RETURNING id, name, termination_reason",
+            [reason, id]
+        );
+
+        if (result.rows.length === 0) {
+            return errorResponse(res, "Terminated guard not found", 404);
+        }
+
+        console.log(`[UpdateGuardTerminationReason] Updated reason for guard ${id}: ${reason}`);
+        return successResponse(res, "Termination reason updated successfully", {
+            guard: {
+                id: result.rows[0].id,
+                name: result.rows[0].name,
+                termination_reason: result.rows[0].termination_reason
+            }
+        });
+    } catch (error) {
+        console.error("[UpdateGuardTerminationReason] Error:", error);
         return errorResponse(res, "Server error", 500);
     }
 };
